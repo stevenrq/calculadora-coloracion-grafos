@@ -5,18 +5,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EditorToolbar } from '@/components/editor-toolbar';
 import { GraphCanvas } from '@/components/graph-canvas/graph-canvas';
+import { GraphTextEditor } from '@/components/graph-text-editor';
 import { NoticeSnackbar } from '@/components/notice-snackbar';
 import { RenameDialog } from '@/components/rename-dialog';
+import { SegmentedControl } from '@/components/segmented-control';
 import { SelectionBar } from '@/components/selection-bar';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { countsLabel } from '@/lib/format';
 import { IDENTITY_VIEWPORT, type Viewport, WORLD_BOX } from '@/lib/geometry';
-import { autoLayout, fitViewport } from '@/lib/layout/layouts';
+import type { Graph } from '@/lib/graph/types';
+import { autoLayout, fitViewport, mergePositions } from '@/lib/layout/layouts';
 import { useColoringEditor } from '@/state/editor-context';
 
 const FIT_PADDING = 24;
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+type Mode = 'draw' | 'text';
+const MODE_OPTIONS = [
+  { value: 'draw', label: 'Dibujo' },
+  { value: 'text', label: 'Texto' },
+] as const satisfies readonly { value: Mode; label: string }[];
 
 export default function ColorScreen() {
   const theme = useTheme();
@@ -26,6 +34,7 @@ export default function ColorScreen() {
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [fittedRequest, setFittedRequest] = useState<number | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const [mode, setMode] = useState<Mode>('draw');
 
   // Encuadrar al conocer el tamaño del lienzo y cada vez que el reducer lo pide (ajuste de estado durante el render).
   if (size && fittedRequest !== fitRequest) {
@@ -45,13 +54,45 @@ export default function ColorScreen() {
     dispatch({ type: 'renameSelected', to });
     setRenaming(false);
   };
+  const applyText = (graph: Graph) => {
+    dispatch({
+      type: 'replaceDoc',
+      doc: { graph, positions: mergePositions(doc.positions, graph, WORLD_BOX) },
+      message: 'Se aplicó el texto.',
+    });
+  };
+  const snackbar = (
+    <NoticeSnackbar
+      notice={notice}
+      onUndo={() => dispatch({ type: 'undo' })}
+      onDismiss={() => dispatch({ type: 'dismissNotice' })}
+    />
+  );
+
+  if (mode === 'text') {
+    return (
+      <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
+        <View style={styles.header}>
+          <View style={styles.modeSwitch}>
+            <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={setMode} />
+          </View>
+        </View>
+        <View style={styles.canvasArea}>
+          <GraphTextEditor graph={doc.graph} directed={doc.graph.directed} onApply={applyText} />
+          {snackbar}
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text }]}>Colorear</Text>
-        <Text style={[styles.counts, { color: theme.textSecondary }]}>
-          {plural(vertexCount, 'vértice', 'vértices')} · {plural(edgeCount, 'arista', 'aristas')}
+        <View style={styles.modeSwitch}>
+          <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={setMode} />
+        </View>
+        <Text style={[styles.counts, { color: theme.textSecondary }]} numberOfLines={2}>
+          {countsLabel(vertexCount, edgeCount)}
         </Text>
       </View>
 
@@ -85,11 +126,7 @@ export default function ColorScreen() {
             </Pressable>
           </View>
         )}
-        <NoticeSnackbar
-          notice={notice}
-          onUndo={() => dispatch({ type: 'undo' })}
-          onDismiss={() => dispatch({ type: 'dismissNotice' })}
-        />
+        {snackbar}
       </View>
 
       <SelectionBar
@@ -122,13 +159,13 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.three,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
-  title: { fontSize: 22, lineHeight: 28, fontWeight: '700' },
-  counts: { fontSize: 14, lineHeight: 20 },
+  modeSwitch: { flexBasis: 220, flexShrink: 1 },
+  counts: { flex: 1, fontSize: 13, lineHeight: 18, textAlign: 'right' },
   canvasArea: { flex: 1 },
   // box-none: los toques fuera del botón llegan al lienzo y crean el vértice.
   empty: {
