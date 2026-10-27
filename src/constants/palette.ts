@@ -47,3 +47,8 @@ export function contrastText(hex: string): '#000000' | '#FFFFFF' {
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
   return luminance > 0.179 ? '#000000' : '#FFFFFF';
 }
+
+/** Coloración (índices) → color de relleno de cada vértice. */
+export function coloringColors(coloring: Readonly<Record<string, number>>): Record<string, string> {
+  return Object.fromEntries(Object.entries(coloring).map(([v, c]) => [v, graphColor(c)]));
+}

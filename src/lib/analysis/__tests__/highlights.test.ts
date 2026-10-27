@@ -1,5 +1,5 @@
 import { analyzeGraph } from '@/lib/analysis/analyze';
-import { cycleEdges, highlightFor, sameTarget } from '@/lib/analysis/highlights';
+import { cycleEdges, highlightFor, sameTarget, stepHighlight } from '@/lib/analysis/highlights';
 import { exampleGraph, findExample } from '@/lib/examples/coloring-examples';
 
 describe('cycleEdges', () => {
@@ -51,5 +51,21 @@ describe('sameTarget', () => {
     expect(sameTarget({ kind: 'class', color: 1 }, { kind: 'class', color: 2 })).toBe(false);
     expect(sameTarget({ kind: 'clique' }, { kind: 'odd-cycle' })).toBe(false);
     expect(sameTarget(null, { kind: 'clique' })).toBe(false);
+  });
+});
+
+describe('stepHighlight', () => {
+  const steps = [
+    { kind: 'info' as const, message: 'inicio' },
+    { kind: 'assign' as const, vertex: 'A', color: 0, message: 'A recibe el color 1' },
+  ];
+
+  it('resalta en foco el vértice del paso actual', () => {
+    expect(stepHighlight(steps, 1)).toEqual({ vertices: ['A'], edges: [], tone: 'focus' });
+  });
+
+  it('sin vértice (paso informativo o índice -1) no resalta nada', () => {
+    expect(stepHighlight(steps, 0)).toBeUndefined();
+    expect(stepHighlight(steps, -1)).toBeUndefined();
   });
 });

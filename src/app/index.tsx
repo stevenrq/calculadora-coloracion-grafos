@@ -8,21 +8,13 @@ import { GraphCanvas } from '@/components/graph-canvas/graph-canvas';
 import { GraphTextEditor } from '@/components/graph-text-editor';
 import { NoticeSnackbar } from '@/components/notice-snackbar';
 import { RenameDialog } from '@/components/rename-dialog';
-import { AlgorithmPicker } from '@/components/results/algorithm-picker';
-import { BoundsCard } from '@/components/results/bounds-card';
-import { ChromaticCard } from '@/components/results/chromatic-card';
-import { ColorClasses } from '@/components/results/color-classes';
+import { ResultsPanel } from '@/components/results/results-panel';
 import { ResultsSheet, SHEET_PEEK } from '@/components/results/results-sheet';
-import { StructureCard } from '@/components/results/structure-card';
 import { SegmentedControl } from '@/components/segmented-control';
 import { SelectionBar } from '@/components/selection-bar';
-import { graphColor } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
-import { useColoringAnalysis } from '@/hooks/use-coloring-analysis';
+import { useResultsView } from '@/hooks/use-results-view';
 import { useTheme } from '@/hooks/use-theme';
-import { highlightFor, type HighlightTarget, sameTarget } from '@/lib/analysis/highlights';
-import { selectDisplayedResult } from '@/lib/coloring/present';
-import type { AlgorithmId } from '@/lib/coloring/types';
 import { countsLabel } from '@/lib/format';
 import { IDENTITY_VIEWPORT, type Viewport, WORLD_BOX } from '@/lib/geometry';
 import type { Graph } from '@/lib/graph/types';
@@ -47,24 +39,14 @@ export default function ColorScreen() {
   const [fittedKey, setFittedKey] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [mode, setMode] = useState<Mode>('draw');
-  const [resultsOpen, setResultsOpen] = useState(false);
-  const [algorithm, setAlgorithm] = useState<AlgorithmId>('auto');
-  const [highlightTarget, setHighlightTarget] = useState<HighlightTarget>(null);
-
-  const { analysis, cancelExact } = useColoringAnalysis(doc.graph, resultsOpen && mode === 'draw');
-  const displayed = analysis ? selectDisplayedResult(algorithm, analysis.heuristics, analysis.chromatic) : null;
-  const vertexColors = displayed
-    ? Object.fromEntries(Object.entries(displayed.coloring).map(([v, c]) => [v, graphColor(c)]))
-    : undefined;
-  const highlight =
-    analysis && displayed ? highlightFor(highlightTarget, doc.graph, displayed.coloring, analysis) : undefined;
+  const results = useResultsView(doc.graph, mode === 'draw');
 
   // Encuadrar al conocer el tamaño del lienzo, cada vez que el reducer lo pide y al abrir/cerrar los resultados
   // (con la hoja abierta, solo en la parte de arriba que queda visible). Ajuste de estado durante el render.
-  const fitKey = `${fitRequest}|${resultsOpen}`;
+  const fitKey = `${fitRequest}|${results.open}`;
   if (size && fittedKey !== fitKey) {
     setFittedKey(fitKey);
-    const view = resultsOpen ? { width: size.width, height: size.height * (1 - SHEET_PEEK) } : size;
+    const view = results.open ? { width: size.width, height: size.height * (1 - SHEET_PEEK) } : size;
     setViewport(fitViewport(doc.positions, view, FIT_PADDING));
   }
 
@@ -74,25 +56,9 @@ export default function ColorScreen() {
   const relayout = () => {
     if (vertexCount > 0) dispatch({ type: 'setPositions', positions: autoLayout(doc.graph, WORLD_BOX) });
   };
-  const openResults = () => {
-    setResultsOpen(true);
-    setHighlightTarget(null);
-  };
-  const closeResults = () => {
-    setResultsOpen(false);
-    setHighlightTarget(null);
-  };
   const changeMode = (next: Mode) => {
-    if (next === 'text') closeResults();
+    if (next === 'text') results.closeResults();
     setMode(next);
-  };
-  const changeAlgorithm = (next: AlgorithmId) => {
-    setAlgorithm(next);
-    // Las clases de color cambian con el algoritmo; clique y ciclo no.
-    setHighlightTarget((current) => (current?.kind === 'class' ? null : current));
-  };
-  const toggleHighlight = (target: HighlightTarget) => {
-    setHighlightTarget((current) => (sameTarget(current, target) ? null : target));
   };
   const submitRename = (to: string) => {
     dispatch({ type: 'renameSelected', to });
@@ -144,14 +110,14 @@ export default function ColorScreen() {
         <View style={styles.canvasArea}>
           <GraphCanvas
             doc={doc}
-            selection={resultsOpen ? NO_SELECTION : selection}
+            selection={results.open ? NO_SELECTION : selection}
             dispatch={dispatch}
-            editable={!resultsOpen}
+            editable={!results.open}
             viewport={viewport}
             onViewportChange={setViewport}
             onLayout={setSize}
-            vertexColors={vertexColors}
-            highlight={highlight}
+            vertexColors={results.vertexColors}
+            highlight={results.highlight}
           />
           {vertexCount === 0 && (
             <View style={styles.empty}>
@@ -189,35 +155,11 @@ export default function ColorScreen() {
           onRedo={() => dispatch({ type: 'redo' })}
           onRelayout={relayout}
           onClear={() => dispatch({ type: 'clear' })}
-          onColor={openResults}
+          onColor={results.openResults}
         />
 
-        <ResultsSheet visible={resultsOpen} onClose={closeResults}>
-          {analysis && displayed && (
-            <>
-              <AlgorithmPicker value={algorithm} onChange={changeAlgorithm} />
-              <ChromaticCard chromatic={analysis.chromatic} displayed={displayed} onCancel={cancelExact} />
-              <ColorClasses
-                graph={doc.graph}
-                coloring={displayed.coloring}
-                selected={highlightTarget?.kind === 'class' ? highlightTarget.color : null}
-                onSelect={(color) => toggleHighlight({ kind: 'class', color })}
-              />
-              <BoundsCard
-                clique={analysis.clique.clique}
-                bounds={analysis.bounds}
-                cliqueHighlighted={highlightTarget?.kind === 'clique'}
-                onToggleClique={() => toggleHighlight({ kind: 'clique' })}
-              />
-              <StructureCard
-                bipartite={analysis.bipartite}
-                componentCount={analysis.components.length}
-                degrees={analysis.degrees}
-                cycleHighlighted={highlightTarget?.kind === 'odd-cycle'}
-                onToggleCycle={() => toggleHighlight({ kind: 'odd-cycle' })}
-              />
-            </>
-          )}
+        <ResultsSheet visible={results.open} onClose={results.closeResults}>
+          <ResultsPanel graph={doc.graph} view={results} />
         </ResultsSheet>
       </View>
 

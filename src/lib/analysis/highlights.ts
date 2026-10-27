@@ -1,4 +1,4 @@
-import type { Coloring } from '@/lib/coloring/types';
+import type { Coloring, ColoringStep } from '@/lib/coloring/types';
 import { colorClasses } from '@/lib/coloring/validate';
 import type { Edge, Graph, VertexId } from '@/lib/graph/types';
 import type { StructuralAnalysis } from './analyze';
@@ -43,4 +43,10 @@ export function highlightFor(
 export function sameTarget(a: HighlightTarget, b: HighlightTarget): boolean {
   if (!a || !b || a.kind !== b.kind) return false;
   return a.kind !== 'class' || (b.kind === 'class' && a.color === b.color);
+}
+
+/** En el reproductor: el vértice del paso actual, en foco. */
+export function stepHighlight(steps: readonly ColoringStep[], index: number): HighlightSpec | undefined {
+  const vertex = index >= 0 ? steps[index]?.vertex : undefined;
+  return vertex === undefined ? undefined : { vertices: [vertex], edges: [], tone: 'focus' };
 }
