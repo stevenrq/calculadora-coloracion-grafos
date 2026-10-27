@@ -72,19 +72,21 @@ export function StepPlayer({
   const atStart = index <= -1;
   const atEnd = index >= last;
   const speed = PLAYBACK_SPEEDS[speedIndex];
+  // Al llegar al final (también cuando un resaltado lo lleva ahí desde afuera) deja de contar como reproduciendo.
+  const isPlaying = playing && !atEnd;
 
   useEffect(() => {
-    if (!playing || atEnd) return;
+    if (!isPlaying) return;
     const timer = setTimeout(() => {
       const next = index + 1;
       onIndexChange(next);
       if (next >= last) setPlaying(false);
     }, stepIntervalMs(speed));
     return () => clearTimeout(timer);
-  }, [playing, atEnd, index, last, speed, onIndexChange]);
+  }, [isPlaying, index, last, speed, onIndexChange]);
 
   const togglePlay = () => {
-    if (playing) return setPlaying(false);
+    if (isPlaying) return setPlaying(false);
     if (atEnd) onIndexChange(-1);
     setPlaying(true);
   };
@@ -132,8 +134,8 @@ export function StepPlayer({
         <ControlButton icon="replay" label="Reiniciar" onPress={restart} disabled={atStart} />
         <ControlButton icon="skip-previous" label="Atrás" onPress={back} disabled={atStart} />
         <ControlButton
-          icon={playing ? 'pause' : 'play-arrow'}
-          label={playing ? 'Pausa' : 'Reproducir'}
+          icon={isPlaying ? 'pause' : 'play-arrow'}
+          label={isPlaying ? 'Pausa' : 'Reproducir'}
           onPress={togglePlay}
           disabled={steps.length === 0}
           primary

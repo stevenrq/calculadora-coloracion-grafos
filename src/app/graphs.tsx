@@ -6,7 +6,7 @@ import { GraphThumbnail } from '@/components/graph-thumbnail';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { COLORING_EXAMPLES, type ColoringExample, exampleGraph } from '@/lib/examples/coloring-examples';
-import { countsLabel } from '@/lib/format';
+import { countsLabel, sentences } from '@/lib/format';
 import { WORLD_BOX } from '@/lib/geometry';
 import type { Graph, Positions } from '@/lib/graph/types';
 import { autoLayout, fromNormalized } from '@/lib/layout/layouts';
@@ -53,7 +53,12 @@ export default function GraphsScreen() {
               key={example.id}
               onPress={() => load(card)}
               accessibilityRole="button"
-              accessibilityLabel={`${example.name}. ${example.description}. ${counts}. Número cromático ${example.chromaticNumber}.`}
+              accessibilityLabel={sentences(
+                example.name,
+                example.description,
+                counts,
+                `Número cromático ${example.chromaticNumber}`,
+              )}
               style={({ pressed }) => [
                 styles.card,
                 { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement },

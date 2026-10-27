@@ -23,6 +23,7 @@ import {
   type Viewport,
 } from '@/lib/geometry';
 import type { Edge, Point, VertexId } from '@/lib/graph/types';
+import { fitLabel } from '@/lib/label';
 import type { EditorAction, EditorDoc, Selection } from '@/state/editor-reducer';
 
 export interface CanvasHighlight {
@@ -57,12 +58,6 @@ const edgeHitTolerance = (vp: Viewport) => Math.max(EDGE_HIT_TOLERANCE, MIN_EDGE
 function sameEdge(a: Edge, b: Edge, directed: boolean): boolean {
   if (a[0] === b[0] && a[1] === b[1]) return true;
   return !directed && a[0] === b[1] && a[1] === b[0];
-}
-
-function labelFontSize(label: string): number {
-  if (label.length <= 2) return 15;
-  if (label.length <= 4) return 12;
-  return 10;
 }
 
 export function GraphCanvas({
@@ -219,7 +214,7 @@ export function GraphCanvas({
               const p = positions[v];
               if (!p) return null;
               const fill = vertexColors?.[v] ?? theme.vertex;
-              const fontSize = labelFontSize(v);
+              const label = fitLabel(v);
               return (
                 <G key={v}>
                   {highlightVertices.has(v) && (
@@ -239,12 +234,12 @@ export function GraphCanvas({
                   <Circle cx={p.x} cy={p.y} r={VERTEX_RADIUS} fill={fill} stroke={theme.edge} strokeWidth={2} />
                   <SvgText
                     x={p.x}
-                    y={p.y + fontSize * 0.35}
+                    y={p.y + label.fontSize * 0.35}
                     fill={contrastText(fill)}
-                    fontSize={fontSize}
+                    fontSize={label.fontSize}
                     fontWeight="600"
                     textAnchor="middle">
-                    {v}
+                    {label.text}
                   </SvgText>
                 </G>
               );

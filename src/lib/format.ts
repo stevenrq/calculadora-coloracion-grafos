@@ -7,3 +7,8 @@ export function plural(n: number, one: string, many: string): string {
 export function countsLabel(vertices: number, edges: number): string {
   return `${plural(vertices, 'vértice', 'vértices')} · ${plural(edges, 'arista', 'aristas')}`;
 }
+
+/** Une frases en un texto para lectores de pantalla, cada una con un solo signo de cierre (`.`, `?` o `!`). */
+export function sentences(...parts: string[]): string {
+  return parts.map((part) => (/[.?!]$/.test(part) ? part : `${part}.`)).join(' ');
+}

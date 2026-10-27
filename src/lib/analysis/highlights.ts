@@ -50,3 +50,29 @@ export function stepHighlight(steps: readonly ColoringStep[], index: number): Hi
   const vertex = index >= 0 ? steps[index]?.vertex : undefined;
   return vertex === undefined ? undefined : { vertices: [vertex], edges: [], tone: 'focus' };
 }
+
+/** Lo elegido en la hoja de resultados: el resaltado activo y el paso del reproductor. */
+export interface ResultsSelection {
+  target: HighlightTarget;
+  /** Paso elegido para un resultado concreto (`key`); `null` o una `key` vieja equivalen al paso final. */
+  step: { key: string; index: number } | null;
+}
+
+export const EMPTY_SELECTION: ResultsSelection = { target: null, step: null };
+
+/**
+ * Tocar un resaltado lo alterna. Al activarlo, el reproductor salta al final: durante la reproducción el lienzo
+ * muestra el paso, y la tarjeta quedaría marcada sin que se viera nada.
+ */
+export function afterHighlightToggle(s: ResultsSelection, target: NonNullable<HighlightTarget>): ResultsSelection {
+  return sameTarget(s.target, target) ? { ...s, target: null } : { target, step: null };
+}
+
+/** Mover el reproductor antes del final apaga el resaltado, por la misma razón: el lienzo pasa a mostrar el paso. */
+export function afterStepChange(
+  s: ResultsSelection,
+  step: { key: string; index: number },
+  lastStep: number,
+): ResultsSelection {
+  return { target: step.index < lastStep ? null : s.target, step };
+}

@@ -2,7 +2,15 @@ import { useState } from 'react';
 
 import { coloringColors } from '@/constants/palette';
 import { useColoringAnalysis } from '@/hooks/use-coloring-analysis';
-import { highlightFor, type HighlightTarget, sameTarget, stepHighlight } from '@/lib/analysis/highlights';
+import {
+  afterHighlightToggle,
+  afterStepChange,
+  EMPTY_SELECTION,
+  highlightFor,
+  type HighlightTarget,
+  type ResultsSelection,
+  stepHighlight,
+} from '@/lib/analysis/highlights';
 import { selectDisplayedResult } from '@/lib/coloring/present';
 import { coloringAtStep } from '@/lib/coloring/replay';
 import type { AlgorithmId } from '@/lib/coloring/types';
@@ -15,8 +23,8 @@ import type { Graph } from '@/lib/graph/types';
 export function useResultsView(graph: Graph, active: boolean) {
   const [open, setOpen] = useState(false);
   const [algorithm, setAlgorithm] = useState<AlgorithmId>('auto');
-  const [highlightTarget, setHighlightTarget] = useState<HighlightTarget>(null);
-  const [stepState, setStepState] = useState<{ key: string; index: number } | null>(null);
+  const [selection, setSelection] = useState<ResultsSelection>(EMPTY_SELECTION);
+  const highlightTarget = selection.target;
 
   const { analysis, cancelExact } = useColoringAnalysis(graph, open && active);
   const displayed = analysis ? selectDisplayedResult(algorithm, analysis.heuristics, analysis.chromatic) : null;
@@ -24,7 +32,7 @@ export function useResultsView(graph: Graph, active: boolean) {
   // Paso del reproductor: si cambia el resultado mostrado (otro grafo u otro algoritmo), vuelve al paso final.
   const resultKey = analysis && displayed ? `${analysis.key}|${displayed.algorithm}` : null;
   const lastStep = displayed ? displayed.steps.length - 1 : -1;
-  const stepIndex = stepState?.key === resultKey ? stepState.index : lastStep;
+  const stepIndex = selection.step?.key === resultKey ? selection.step.index : lastStep;
   const replaying = displayed !== null && stepIndex < lastStep;
 
   let vertexColors: Record<string, string> | undefined;
@@ -49,22 +57,22 @@ export function useResultsView(graph: Graph, active: boolean) {
     highlight,
     openResults() {
       setOpen(true);
-      setHighlightTarget(null);
+      setSelection((s) => ({ ...s, target: null }));
     },
     closeResults() {
       setOpen(false);
-      setHighlightTarget(null);
+      setSelection((s) => ({ ...s, target: null }));
     },
     changeAlgorithm(next: AlgorithmId) {
       setAlgorithm(next);
       // Las clases de color cambian con el algoritmo; clique y ciclo no.
-      setHighlightTarget((current) => (current?.kind === 'class' ? null : current));
+      setSelection((s) => (s.target?.kind === 'class' ? { ...s, target: null } : s));
     },
-    toggleHighlight(target: HighlightTarget) {
-      setHighlightTarget((current) => (sameTarget(current, target) ? null : target));
+    toggleHighlight(target: NonNullable<HighlightTarget>) {
+      setSelection((s) => afterHighlightToggle(s, target));
     },
     changeStep(index: number) {
-      if (resultKey) setStepState({ key: resultKey, index });
+      if (resultKey) setSelection((s) => afterStepChange(s, { key: resultKey, index }, lastStep));
     },
   };
 }

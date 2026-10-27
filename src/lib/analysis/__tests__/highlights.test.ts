@@ -1,5 +1,13 @@
 import { analyzeGraph } from '@/lib/analysis/analyze';
-import { cycleEdges, highlightFor, sameTarget, stepHighlight } from '@/lib/analysis/highlights';
+import {
+  afterHighlightToggle,
+  afterStepChange,
+  cycleEdges,
+  highlightFor,
+  type ResultsSelection,
+  sameTarget,
+  stepHighlight,
+} from '@/lib/analysis/highlights';
 import { exampleGraph, findExample } from '@/lib/examples/coloring-examples';
 
 describe('cycleEdges', () => {
@@ -67,5 +75,33 @@ describe('stepHighlight', () => {
   it('sin vértice (paso informativo o índice -1) no resalta nada', () => {
     expect(stepHighlight(steps, 0)).toBeUndefined();
     expect(stepHighlight(steps, -1)).toBeUndefined();
+  });
+});
+
+describe('selección de la hoja: resaltado y reproductor', () => {
+  const midReplay: ResultsSelection = { target: null, step: { key: 'k', index: 2 } };
+
+  it('activar un resaltado lleva el reproductor al final para que el lienzo lo muestre', () => {
+    expect(afterHighlightToggle(midReplay, { kind: 'odd-cycle' })).toEqual({ target: { kind: 'odd-cycle' }, step: null });
+  });
+
+  it('tocar el mismo resaltado lo apaga', () => {
+    const on: ResultsSelection = { target: { kind: 'clique' }, step: null };
+    expect(afterHighlightToggle(on, { kind: 'clique' })).toEqual({ target: null, step: null });
+  });
+
+  it('tocar otro resaltado lo cambia', () => {
+    const on: ResultsSelection = { target: { kind: 'clique' }, step: null };
+    expect(afterHighlightToggle(on, { kind: 'class', color: 1 }).target).toEqual({ kind: 'class', color: 1 });
+  });
+
+  it('retroceder el reproductor apaga el resaltado: el lienzo pasa a mostrar el paso', () => {
+    const on: ResultsSelection = { target: { kind: 'clique' }, step: null };
+    expect(afterStepChange(on, { key: 'k', index: 0 }, 6)).toEqual({ target: null, step: { key: 'k', index: 0 } });
+  });
+
+  it('ir al paso final conserva el resaltado', () => {
+    const on: ResultsSelection = { target: { kind: 'clique' }, step: null };
+    expect(afterStepChange(on, { key: 'k', index: 6 }, 6).target).toEqual({ kind: 'clique' });
   });
 });
