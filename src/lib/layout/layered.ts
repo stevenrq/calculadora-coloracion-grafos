@@ -59,7 +59,8 @@ export function layeredLayout(g: Graph, stageOf: Readonly<Record<VertexId, numbe
   const y = placeRows(nodes, order);
 
   const pos: Point[] = g.vertices.map((_, i) => ({ x: nodes[i].layer * LAYER_GAP, y: y[i] }));
-  repairIntrusions(g, pos, nodes, order);
+  // En un grafo denso siempre habrá flechas sobre vértices: repararlo solo gastaría tiempo.
+  if (g.edges.length <= 3 * g.vertices.length) repairIntrusions(g, pos, nodes, order);
 
   // Centrar en la caja del mundo.
   const xs = pos.map((p) => p.x);
@@ -85,11 +86,13 @@ function orderLayers(nodes: LayerNode[], layerCount: number): number[][] {
   initial.forEach(refreshRank);
   let bestCrossings = countCrossings(nodes, best, rank);
   // Con muchísimos puntos de paso (grafos densos) cada barrido es caro y el dibujo no queda limpio de todos modos.
-  const restarts = nodes.length > 300 ? 2 : ORDER_RESTARTS;
+  const heavy = nodes.length > 300;
+  const restarts = heavy ? 1 : ORDER_RESTARTS;
+  const sweeps = heavy ? ORDER_SWEEPS / 2 : ORDER_SWEEPS;
   for (let restart = 0; restart < restarts && bestCrossings > 0; restart++) {
     const order = initial.map((layer) => (restart === 0 ? [...layer] : shuffle(layer, random)));
     order.forEach(refreshRank);
-    for (let sweep = 0; sweep < ORDER_SWEEPS; sweep++) {
+    for (let sweep = 0; sweep < sweeps; sweep++) {
       const downward = sweep % 2 === 0;
       const layers = downward ? range(1, layerCount) : range(0, layerCount - 1).reverse();
       for (const l of layers) {
@@ -259,6 +262,9 @@ function repairIntrusions(g: Graph, pos: Point[], nodes: LayerNode[], order: num
         const pa = pos[ia];
         const pb = pos[ib];
         const p = pos[v];
+        // Fuera del rectángulo de la flecha ampliado en el margen, no puede rozarla.
+        if (p.x < (pa.x < pb.x ? pa.x : pb.x) - EDGE_CLEARANCE || p.x > (pa.x < pb.x ? pb.x : pa.x) + EDGE_CLEARANCE) continue;
+        if (p.y < (pa.y < pb.y ? pa.y : pb.y) - EDGE_CLEARANCE || p.y > (pa.y < pb.y ? pb.y : pa.y) + EDGE_CLEARANCE) continue;
         const ex = pb.x - pa.x;
         const ey = pb.y - pa.y;
         const lengthSq = ex * ex + ey * ey;
