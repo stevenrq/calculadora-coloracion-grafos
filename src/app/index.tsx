@@ -1,3 +1,4 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,6 +9,7 @@ import { EditorToolbar } from '@/components/editor-toolbar';
 import { GraphCanvas } from '@/components/graph-canvas/graph-canvas';
 import { GraphTextEditor } from '@/components/graph-text-editor';
 import { NoticeSnackbar } from '@/components/notice-snackbar';
+import { PracticeBar } from '@/components/practice-bar';
 import { RenameDialog } from '@/components/rename-dialog';
 import { ResultsPanel } from '@/components/results/results-panel';
 import { ResultsSheet, SHEET_PEEK } from '@/components/results/results-sheet';
@@ -16,14 +18,19 @@ import { SegmentedControl } from '@/components/segmented-control';
 import { SelectionBar } from '@/components/selection-bar';
 import { coloringColors } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
+import { useColoringAnalysis } from '@/hooks/use-coloring-analysis';
 import { useResultsView } from '@/hooks/use-results-view';
 import { useTheme } from '@/hooks/use-theme';
+import { paintVertex, practiceVerdict, prunePractice } from '@/lib/coloring/practice';
+import type { Coloring } from '@/lib/coloring/types';
+import { conflictingEdges } from '@/lib/coloring/validate';
 import { countsLabel } from '@/lib/format';
 import { IDENTITY_VIEWPORT, type Viewport, WORLD_BOX } from '@/lib/geometry';
-import type { Graph } from '@/lib/graph/types';
+import type { Graph, VertexId } from '@/lib/graph/types';
 import { autoLayout, fitViewport, mergePositions } from '@/lib/layout/layouts';
 import { activeBridge, type StageBridge } from '@/lib/precedence/bridge';
 import { useColoringEditor } from '@/state/editor-context';
+import type { Notice } from '@/state/editor-reducer';
 import { useStageBridge } from '@/state/stage-bridge';
 
 const FIT_PADDING = 24;
@@ -50,10 +57,17 @@ export default function ColorScreen() {
   const stageBridge = activeBridge(bridge, doc.graph);
   const [seenBridge, setSeenBridge] = useState<StageBridge | null>(null);
   const [paint, setPaint] = useState<BridgePaint>('stages');
+  // "Colorea tú": coloración propia fuera del doc y del historial; `null` es que no se está practicando.
+  const [practice, setPractice] = useState<Coloring | null>(null);
+  const [brush, setBrush] = useState<number | null>(0);
+  const [verdictShown, setVerdictShown] = useState(false);
+  const practicing = practice !== null && mode === 'draw';
+  const { analysis: practiceAnalysis } = useColoringAnalysis(doc.graph, practicing);
 
   // Al llegar desde "Ver etapas como coloración" se abren los resultados con la comparación (una vez por puente).
   if (stageBridge && stageBridge !== seenBridge) {
     setSeenBridge(stageBridge);
+    setPractice(null);
     setPaint('stages');
     setMode('draw');
     results.openResults();
@@ -62,7 +76,21 @@ export default function ColorScreen() {
   const stagePaint = stageBridge !== null && paint === 'stages' && !results.replaying;
   const vertexColors = stagePaint ? coloringColors(stageBridge.coloring) : results.vertexColors;
   // Una clase de color de la coloración mostrada no corresponde a la pintura por etapas.
-  const highlight = stagePaint && results.highlightTarget?.kind === 'class' ? undefined : results.highlight;
+  const resultsHighlight = stagePaint && results.highlightTarget?.kind === 'class' ? undefined : results.highlight;
+  // Se poda en cada render: un vértice que ya no existe no debe contar como coloreado.
+  const practiceColoring = practicing ? prunePractice(practice, doc.graph) : null;
+  const conflicts = practiceColoring ? conflictingEdges(doc.graph, practiceColoring) : [];
+  const highlight = practiceColoring
+    ? conflicts.length > 0
+      ? { edges: conflicts, tone: 'warning' as const }
+      : undefined
+    : resultsHighlight;
+  // El veredicto se recalcula mientras se ve: si χ seguía calculándose, el aviso se actualiza al terminar.
+  const verdict =
+    practiceColoring && verdictShown && practiceAnalysis
+      ? practiceVerdict(doc.graph, practiceColoring, practiceAnalysis.chromatic)
+      : null;
+  const practiceNotice: Notice | null = verdict && { kind: verdict.ok ? 'info' : 'error', message: verdict.message };
 
   // Encuadrar al conocer el tamaño del lienzo, cada vez que el reducer lo pide y al abrir/cerrar los resultados
   // (con la hoja abierta, solo en la parte de arriba que queda visible). Ajuste de estado durante el render.
@@ -86,6 +114,20 @@ export default function ColorScreen() {
   const colorGraph = () => {
     setMode('draw');
     results.openResults();
+  };
+  const startPractice = () => {
+    results.closeResults();
+    setPractice({});
+    setBrush(0);
+    setVerdictShown(false);
+  };
+  const exitPractice = () => {
+    setPractice(null);
+    setVerdictShown(false);
+  };
+  const paintPractice = (id: VertexId) => {
+    setPractice((c) => (c ? paintVertex(c, id, brush) : c));
+    setVerdictShown(false);
   };
   const submitRename = (to: string) => {
     dispatch({ type: 'renameSelected', to });
@@ -166,28 +208,51 @@ export default function ColorScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <View style={styles.modeSwitch}>
-          <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={changeMode} />
+      {practicing ? (
+        <View style={[styles.header, styles.practiceHeader]}>
+          <Text style={[styles.practiceTitle, { color: theme.text }]} accessibilityRole="header">
+            Colorea tú: elige un color y toca vértices
+          </Text>
         </View>
-        <Text style={[styles.counts, { color: theme.textSecondary }]} numberOfLines={2}>
-          {countsLabel(vertexCount, edgeCount)}
-        </Text>
-      </View>
+      ) : (
+        <View style={styles.header}>
+          <View style={styles.modeSwitch}>
+            <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={changeMode} />
+          </View>
+          <Text style={[styles.counts, { color: theme.textSecondary }]} numberOfLines={2}>
+            {countsLabel(vertexCount, edgeCount)}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.body}>
         <View style={styles.canvasArea}>
           <GraphCanvas
             doc={doc}
-            selection={results.open ? NO_SELECTION : selection}
+            selection={results.open || practicing ? NO_SELECTION : selection}
             dispatch={dispatch}
-            editable={!results.open}
+            editable={!results.open && !practicing}
             viewport={viewport}
             onViewportChange={setViewport}
             onLayout={setSize}
-            vertexColors={vertexColors}
+            vertexColors={practiceColoring ? coloringColors(practiceColoring) : vertexColors}
             highlight={highlight}
+            onPaintVertex={practicing ? paintPractice : undefined}
           />
+          {!practicing && vertexCount > 0 && (
+            <Pressable
+              onPress={startPractice}
+              accessibilityRole="button"
+              accessibilityLabel="Colorea tú: pinta los vértices a mano"
+              style={({ pressed }) => [
+                styles.practiceButton,
+                { backgroundColor: theme.background, borderColor: theme.border },
+                pressed && { backgroundColor: theme.backgroundSelected },
+              ]}>
+              <MaterialIcons name="brush" size={20} color={theme.primary} />
+              <Text style={[styles.practiceButtonLabel, { color: theme.primary }]}>Colorea tú</Text>
+            </Pressable>
+          )}
           {vertexCount === 0 && (
             <View style={styles.empty}>
               <View style={styles.emptyText}>
@@ -208,15 +273,30 @@ export default function ColorScreen() {
               </Pressable>
             </View>
           )}
-          {snackbar}
+          {practicing ? (
+            <NoticeSnackbar notice={practiceNotice} onUndo={() => {}} onDismiss={() => setVerdictShown(false)} />
+          ) : (
+            snackbar
+          )}
         </View>
 
-        <SelectionBar
-          selection={selection}
-          onRename={() => setRenaming(true)}
-          onDelete={() => dispatch({ type: 'deleteSelection' })}
-        />
-        {toolbar}
+        {practicing ? (
+          <PracticeBar
+            color={brush}
+            onColorChange={setBrush}
+            onCheck={() => setVerdictShown(true)}
+            onExit={exitPractice}
+          />
+        ) : (
+          <>
+            <SelectionBar
+              selection={selection}
+              onRename={() => setRenaming(true)}
+              onDelete={() => dispatch({ type: 'deleteSelection' })}
+            />
+            {toolbar}
+          </>
+        )}
 
         <ResultsSheet visible={results.open} onClose={results.closeResults}>
           <ResultsPanel
@@ -280,4 +360,20 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   exampleLabel: { fontSize: 15, fontWeight: '700' },
+  practiceHeader: { minHeight: 56 },
+  practiceTitle: { flex: 1, fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  practiceButton: {
+    position: 'absolute',
+    top: Spacing.two,
+    right: Spacing.three,
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    elevation: 2,
+  },
+  practiceButtonLabel: { fontSize: 15, fontWeight: '700' },
 });

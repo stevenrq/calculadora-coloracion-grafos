@@ -45,6 +45,8 @@ export interface GraphCanvasProps {
   onLayout?: (size: { width: number; height: number }) => void;
   vertexColors?: Readonly<Record<VertexId, string>>;
   highlight?: CanvasHighlight;
+  /** Modo "Colorea tú": tocar un vértice lo pinta y nada más (no crea, no selecciona, no arrastra). */
+  onPaintVertex?: (id: VertexId) => void;
 }
 
 /** Radio táctil mínimo en pantalla (48 dp de diámetro), sin importar el zoom. */
@@ -72,18 +74,19 @@ export function GraphCanvas({
   onLayout,
   vertexColors,
   highlight,
+  onPaintVertex,
 }: GraphCanvasProps) {
   const theme = useTheme();
 
   // Los gestos leen estos valores en vivo: si sus callbacks cambiaran en cada cuadro,
   // RNGH re-enviaría la configuración al lado nativo durante el gesto.
-  const live = useRef({ doc, editable, dispatch, onViewportChange });
+  const live = useRef({ doc, editable, dispatch, onViewportChange, onPaintVertex });
   const vpRef = useRef(viewport);
   const drag = useRef<Drag | null>(null);
   const pinch = useRef<{ start: Viewport; focal: Point } | null>(null);
 
   useEffect(() => {
-    live.current = { doc, editable, dispatch, onViewportChange };
+    live.current = { doc, editable, dispatch, onViewportChange, onPaintVertex };
   });
   useEffect(() => {
     // Durante un gesto manda vpRef (va por delante del estado); fuera de él, manda la pantalla (p. ej. al encuadrar).
@@ -97,12 +100,16 @@ export function GraphCanvas({
 
   const tap = useTapGesture({
     runOnJS: true,
-    enabled: editable,
+    enabled: editable || onPaintVertex !== undefined,
     onActivate: (e) => {
-      const { doc: d, dispatch: send } = live.current;
+      const { doc: d, dispatch: send, onPaintVertex: paint } = live.current;
       const vp = vpRef.current;
       const p = screenToWorld({ x: e.x, y: e.y }, vp);
       const id = hitTestVertex(p, d.positions, d.graph.vertices, vertexHitRadius(vp));
+      if (paint) {
+        if (id) paint(id);
+        return;
+      }
       if (id) return send({ type: 'tapVertex', id });
       const edge = hitTestEdge(p, d.graph, d.positions, edgeHitTolerance(vp));
       if (edge) return send({ type: 'tapEdge', edge });
@@ -118,7 +125,8 @@ export function GraphCanvas({
       const { doc: d, editable: canEdit, dispatch: send } = live.current;
       const vp = vpRef.current;
       const start = screenToWorld({ x: e.x - e.translationX, y: e.y - e.translationY }, vp);
-      const id = canEdit ? hitTestVertex(start, d.positions, d.graph.vertices, vertexHitRadius(vp)) : null;
+      const draggable = canEdit && !live.current.onPaintVertex;
+      const id = draggable ? hitTestVertex(start, d.positions, d.graph.vertices, vertexHitRadius(vp)) : null;
       const grabbed = id ? d.positions[id] : undefined;
       if (!id || !grabbed) {
         drag.current = { kind: 'pan' };
