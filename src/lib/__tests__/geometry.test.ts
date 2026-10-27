@@ -3,6 +3,7 @@ import {
   ARROW_LENGTH,
   ARROW_WIDTH,
   arrowGeometry,
+  canvasSize,
   clampScale,
   distanceToSegment,
   hitTestEdge,
@@ -54,5 +55,16 @@ describe('arrowGeometry', () => {
 
   it('con los círculos encimados no hay flecha', () => {
     expect(arrowGeometry({ x: 0, y: 0 }, { x: 30, y: 0 }, 22)).toBeNull();
+  });
+});
+
+describe('canvasSize', () => {
+  it('un lienzo oculto (0×0) no cuenta como medido: encuadrar con eso deja el grafo diminuto', () => {
+    expect(canvasSize({ width: 0, height: 0 })).toBeNull();
+    expect(canvasSize({ width: 412, height: 0 })).toBeNull();
+  });
+
+  it('un lienzo visible devuelve su tamaño', () => {
+    expect(canvasSize({ width: 412, height: 786 })).toEqual({ width: 412, height: 786 });
   });
 });

@@ -22,6 +22,14 @@ export const EDGE_HIT_TOLERANCE = 14;
 export const MIN_SCALE = 0.3;
 export const MAX_SCALE = 3;
 
+/**
+ * Tamaño medido del lienzo, o `null` si no tiene área: una pestaña montada pero oculta mide 0×0, y encuadrar con eso
+ * deja el grafo diminuto en una esquina hasta el siguiente encuadre.
+ */
+export function canvasSize(layout: { width: number; height: number }): { width: number; height: number } | null {
+  return layout.width > 0 && layout.height > 0 ? { width: layout.width, height: layout.height } : null;
+}
+
 /** Caja de referencia del mundo para los layouts; luego `fitViewport` la adapta a la pantalla real. */
 export const WORLD_BOX: Box = { width: 360, height: 520, padding: 40 };
 

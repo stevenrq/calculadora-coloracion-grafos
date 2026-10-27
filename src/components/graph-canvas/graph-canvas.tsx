@@ -14,6 +14,7 @@ import { contrastText } from '@/constants/palette';
 import { useTheme } from '@/hooks/use-theme';
 import {
   arrowGeometry,
+  canvasSize,
   clampScale,
   EDGE_HIT_TOLERANCE,
   hitTestEdge,
@@ -181,8 +182,8 @@ export function GraphCanvas({
   const transform = `matrix(${viewport.scale} 0 0 ${viewport.scale} ${viewport.tx} ${viewport.ty})`;
 
   const handleLayout = (e: LayoutChangeEvent) => {
-    const { width, height } = e.nativeEvent.layout;
-    onLayout?.({ width, height });
+    const size = canvasSize(e.nativeEvent.layout);
+    if (size) onLayout?.(size);
   };
 
   return (

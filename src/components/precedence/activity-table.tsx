@@ -4,10 +4,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { VertexId } from '@/lib/graph/types';
-import { formatNumber } from '@/lib/precedence/present';
+import { formatDuration, formatNumber } from '@/lib/precedence/present';
 import { type Activity, DURATION_UNITS, type DurationUnit } from '@/lib/precedence/types';
 
-const COLUMNS = { code: 44, predecessors: 76, duration: 64, stage: 44 } as const;
+const COLUMNS = { code: 44, predecessors: 86, duration: 60, stage: 44 } as const;
 
 export function ActivityTable({
   activities,
@@ -97,7 +97,7 @@ export function ActivityTable({
                 `Actividad ${a.code}`,
                 a.name || 'sin nombre',
                 `predecesoras: ${a.predecessors.length > 0 ? a.predecessors.join(', ') : 'ninguna'}`,
-                a.duration === null ? 'sin duración' : `duración ${duration} ${unit}`,
+                a.duration === null ? 'sin duración' : `duración ${formatDuration(a.duration, unit)}`,
                 stage ? `etapa ${stage}` : 'sin etapa',
                 isCritical ? 'en la ruta crítica' : '',
                 'toca para editar',
