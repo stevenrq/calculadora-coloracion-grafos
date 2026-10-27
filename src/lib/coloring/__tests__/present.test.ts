@@ -2,7 +2,14 @@ import { exampleGraph, findExample } from '@/lib/examples/coloring-examples';
 import { dsaturColoring } from '../dsatur';
 import { exactColoringSync } from '../exact';
 import { greedyColoring } from '../greedy';
-import { chromaticLabel, colorsUsedWarning, keepProven, needsExactSearch, selectDisplayedResult } from '../present';
+import {
+  chromaticLabel,
+  colorsUsedWarning,
+  keepProven,
+  knownChromatic,
+  needsExactSearch,
+  selectDisplayedResult,
+} from '../present';
 import { welshPowellColoring } from '../welsh-powell';
 
 const g = exampleGraph(findExample('w5'));
@@ -80,5 +87,23 @@ describe('needsExactSearch', () => {
 
   it('tras cancelar, reabrir la hoja reintenta', () => {
     expect(needsExactSearch({ key: 'k', state: cancelled }, 'k')).toBe(true);
+  });
+});
+
+describe('knownChromatic', () => {
+  const running = { key: 'k', state: { status: 'running' as const, k: 3 } };
+  const cancelled = { key: 'k', state: { status: 'cancelled' as const, lower: 3, upper: 4, result: h.dsatur } };
+  const solved = { key: 'k', state: exact };
+
+  it('lo que ya resolvió la otra instancia (hoja o "Colorea tú") manda sobre la búsqueda propia', () => {
+    expect(knownChromatic(running, solved, 'k')).toBe(solved);
+    expect(knownChromatic(cancelled, solved, 'k')).toBe(solved);
+    expect(knownChromatic(null, solved, 'k')).toBe(solved);
+  });
+
+  it('sin nada compartido de este grafo, vale el estado propio; si tampoco es de este grafo, nada', () => {
+    expect(knownChromatic(running, { key: 'otro', state: exact }, 'k')).toBe(running);
+    expect(knownChromatic(running, null, 'k')).toBe(running);
+    expect(knownChromatic({ key: 'otro', state: exact }, null, 'k')).toBeNull();
   });
 });

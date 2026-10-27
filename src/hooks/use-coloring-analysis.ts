@@ -1,8 +1,14 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
 
 import { analyzeGraph, type StructuralAnalysis } from '@/lib/analysis/analyze';
 import type { ExactProgress } from '@/lib/coloring/exact';
-import { type ChromaticState, type KeyedChromatic, keepProven, needsExactSearch } from '@/lib/coloring/present';
+import {
+  type ChromaticState,
+  type KeyedChromatic,
+  keepProven,
+  knownChromatic,
+  needsExactSearch,
+} from '@/lib/coloring/present';
 import { DEFAULT_EXACT_BUDGET_MS, type ExactOutcome, runExact } from '@/lib/coloring/run-exact';
 import { graphKey } from '@/lib/graph/graph';
 import type { Graph } from '@/lib/graph/types';
@@ -12,6 +18,23 @@ export interface ColoringAnalysis extends StructuralAnalysis {
 }
 
 const RUNNING: ChromaticState = { status: 'running', k: null };
+
+// Último χ definitivo (demostrado o con el tiempo agotado), compartido entre instancias: la hoja de resultados y
+// "Colorea tú" analizan el mismo grafo, y la segunda no debe repetir la búsqueda que ya hizo la primera.
+let solved: KeyedChromatic = null;
+const solvedListeners = new Set<() => void>();
+const subscribeSolved = (listener: () => void) => {
+  solvedListeners.add(listener);
+  return () => void solvedListeners.delete(listener);
+};
+const getSolved = () => solved;
+function publishSolved(next: { key: string; state: ChromaticState }) {
+  if (next.state.status !== 'exact' && next.state.status !== 'timeout') return;
+  const updated = keepProven(solved, next);
+  if (updated === solved) return;
+  solved = updated;
+  solvedListeners.forEach((listener) => listener());
+}
 
 /**
  * Análisis síncrono (estructura y heurísticas) + χ exacto en segundo plano.
@@ -25,6 +48,7 @@ export function useColoringAnalysis(
   const active = enabled && graph.vertices.length > 0;
   const structural = active ? analyzeGraph(graph) : null;
   const [exact, setExact] = useState<KeyedChromatic>(null);
+  const known = knownChromatic(exact, useSyncExternalStore(subscribeSolved, getSolved), key);
   const cancelRef = useRef<(() => void) | null>(null);
 
   const search = useEffectEvent(
@@ -46,8 +70,9 @@ export function useColoringAnalysis(
     },
   );
 
-  // Lee el último resultado sin volverlo dependencia: reabrir la hoja no repite una búsqueda ya resuelta.
-  const alreadySolved = useEffectEvent(() => !needsExactSearch(exact, key));
+  // Lee el último resultado sin volverlo dependencia: reabrir la hoja (o pasar a "Colorea tú") no repite una búsqueda
+  // ya resuelta.
+  const alreadySolved = useEffectEvent(() => !needsExactSearch(known, key));
 
   useEffect(() => {
     if (!active || alreadySolved()) return;
@@ -64,7 +89,9 @@ export function useColoringAnalysis(
         if (!disposed) setExact((prev) => keepProven(prev, { key, state: { status: 'running', k: p.k } }));
       },
     ).then((outcome) => {
-      if (!disposed) setExact((prev) => keepProven(prev, { key, state: outcome }));
+      if (disposed) return;
+      setExact((prev) => keepProven(prev, { key, state: outcome }));
+      publishSolved({ key, state: outcome });
     });
     return () => {
       disposed = true;
@@ -76,6 +103,6 @@ export function useColoringAnalysis(
 
   if (!structural) return { analysis: null, cancelExact };
   // Un estado de otro grafo nunca se muestra: hasta que llegue el propio, "Calculando…".
-  const chromatic = exact?.key === key ? exact.state : RUNNING;
+  const chromatic = known?.state ?? RUNNING;
   return { analysis: { ...structural, chromatic }, cancelExact };
 }

@@ -24,6 +24,15 @@ export function needsExactSearch(prev: KeyedChromatic, key: string): boolean {
   return prev?.key !== key || (prev.state.status !== 'exact' && prev.state.status !== 'timeout');
 }
 
+/**
+ * Lo que se sabe de χ para `key`. `shared` guarda solo resultados definitivos de cualquier instancia (la hoja de
+ * resultados o "Colorea tú") y manda sobre `own`, que puede ser una búsqueda en curso o cancelada.
+ */
+export function knownChromatic(own: KeyedChromatic, shared: KeyedChromatic, key: string): KeyedChromatic {
+  if (shared?.key === key) return shared;
+  return own?.key === key ? own : null;
+}
+
 /** Coloración que se pinta según el algoritmo elegido. Auto/Exacto usan DSATUR mientras la búsqueda corre. */
 export function selectDisplayedResult(
   algorithm: AlgorithmId,
