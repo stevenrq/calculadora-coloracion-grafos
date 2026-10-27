@@ -49,11 +49,14 @@ export function formatDuration(n: number, unit: DurationUnit): string {
   return `${formatNumber(n)} ${n === 1 ? UNIT_SINGULAR[unit] : unit}`;
 }
 
-/** Lo escrito en el campo Duración: vacío → `null`; un número entre 0 y `MAX_DURATION` (coma o punto); si no, inválido. */
+/**
+ * Lo escrito en el campo Duración: vacío → `null`; un número entre 0 y `MAX_DURATION` (coma o punto) con hasta dos
+ * decimales, los mismos que muestra `formatNumber` (así reabrir el diálogo y guardar no lo redondea); si no, inválido.
+ */
 export function parseDuration(text: string): number | null | 'invalid' {
   const trimmed = text.trim();
   if (trimmed === '') return null;
-  if (!/^\d+(?:[.,]\d+)?$/.test(trimmed)) return 'invalid';
+  if (!/^\d+(?:[.,]\d{1,2})?$/.test(trimmed)) return 'invalid';
   const value = Number(trimmed.replace(',', '.'));
   return value <= MAX_DURATION ? value : 'invalid';
 }

@@ -1,3 +1,4 @@
+import { MAX_DURATION } from '@/lib/precedence/types';
 import {
   changeStep,
   formatDuration,
@@ -57,6 +58,15 @@ describe('formato', () => {
     expect(parseDuration('-1')).toBe('invalid');
     expect(parseDuration('abc')).toBe('invalid');
     expect(parseDuration('10000')).toBe('invalid');
+  });
+
+  it('parseDuration admite hasta dos decimales, los que se muestran: al reabrir el diálogo no se pierde nada', () => {
+    expect(parseDuration('2,555')).toBe('invalid');
+    for (let k = 0; k <= MAX_DURATION * 100; k += 7) {
+      const value = parseDuration(formatNumber(k / 100));
+      expect(value).toBe(k / 100);
+      expect(formatNumber(value as number)).toBe(formatNumber(k / 100));
+    }
   });
 
   it('pathLabel', () => {

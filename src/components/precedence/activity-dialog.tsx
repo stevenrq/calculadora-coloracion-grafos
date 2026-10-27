@@ -82,7 +82,7 @@ function ActivityForm({
       ? 'Ya existe una actividad con ese código.'
       : null;
   const duration = parseDuration(durationText);
-  const durationError = duration === 'invalid' ? `Escribe un número entre 0 y ${MAX_DURATION}, o déjalo vacío.` : null;
+  const durationError = duration === 'invalid' ? `Escribe un número entre 0 y ${MAX_DURATION} (hasta dos decimales), o déjalo vacío.` : null;
   const valid = codeError === null && durationError === null;
 
   const togglePredecessor = (p: VertexId) =>
