@@ -1,4 +1,4 @@
-import { countsLabel, plural, sentences } from '@/lib/format';
+import { countsLabel, joinSpanish, plural, sentences } from '@/lib/format';
 
 describe('plural', () => {
   it('usa el singular solo para 1', () => {
@@ -25,5 +25,16 @@ describe('sentences', () => {
 
   it('respeta los signos de cierre que ya terminan la frase', () => {
     expect(sentences('¿Es bipartito?', '¡Sí!', 'Listo')).toBe('¿Es bipartito? ¡Sí! Listo.');
+  });
+});
+
+describe('joinSpanish', () => {
+  it('une con comas e "y", y usa "e" ante sonido i', () => {
+    expect(joinSpanish([])).toBe('');
+    expect(joinSpanish(['A'])).toBe('A');
+    expect(joinSpanish(['A', 'B'])).toBe('A y B');
+    expect(joinSpanish(['C', 'D', 'E'])).toBe('C, D y E');
+    expect(joinSpanish(['E', 'F', 'I'])).toBe('E, F e I');
+    expect(joinSpanish(['Pan', 'hielo'])).toBe('Pan y hielo');
   });
 });
