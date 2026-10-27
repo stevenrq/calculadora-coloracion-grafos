@@ -39,3 +39,10 @@ export function cellLabel(m: AdjacencyMatrix, i: number, j: number, directed: bo
   if (directed) return `${a} → ${b}: ${m.cells[i][j] ? 'sí' : 'no'}`;
   return `${a} – ${b}: ${m.cells[i][j] ? 'arista' : 'sin arista'}`;
 }
+
+/** ¿La fila `row` se dibuja igual en las dos matrices? (mismas columnas, mismas celdas y mismos grados) */
+export function sameMatrixRow(a: AdjacencyMatrix, b: AdjacencyMatrix, row: number): boolean {
+  if (a.labels.length !== b.labels.length || a.labels.some((label, i) => label !== b.labels[i])) return false;
+  if (a.inDegree[row] !== b.inDegree[row] || a.outDegree[row] !== b.outDegree[row]) return false;
+  return a.cells[row].every((on, col) => on === b.cells[row][col]);
+}

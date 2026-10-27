@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { FlatList, type LayoutChangeEvent, Pressable, type StyleProp, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { type AdjacencyMatrix, adjacencyMatrix, cellLabel } from '@/lib/graph/matrix';
+import { type AdjacencyMatrix, adjacencyMatrix, cellLabel, sameMatrixRow } from '@/lib/graph/matrix';
 import type { Graph, VertexId } from '@/lib/graph/types';
 import { fitLabel } from '@/lib/label';
 
@@ -14,7 +14,8 @@ const CELL = 48;
 /**
  * Matriz de adyacencia editable: tocar una celda agrega o quita la arista. Los encabezados quedan fijos sin sincronizar
  * dos scrolls por el hilo de JS: la fila de encabezado está fuera de la lista vertical, y la columna de etiquetas se
- * traslada con el desplazamiento horizontal. Las filas están virtualizadas (con 60 × 60 solo se montan las visibles).
+ * traslada con el desplazamiento horizontal. Las filas están virtualizadas (con 60 × 60 solo se montan las visibles) y
+ * memoizadas: al tocar una celda solo se vuelven a dibujar las filas que cambiaron.
  */
 export function AdjacencyMatrixView({
   graph,
@@ -46,7 +47,7 @@ export function AdjacencyMatrixView({
   const directed = graph.directed;
   const extraColumns = directed ? 2 : 0;
   const width = CELL * (m.labels.length + 1 + extraColumns);
-  const headerStyle: StyleProp<ViewStyle> = [styles.cell, { backgroundColor: theme.backgroundElement, borderColor: theme.border }];
+  const headerStyle = headerCellStyle(theme);
 
   return (
     <View style={styles.screen}>
@@ -78,14 +79,14 @@ export function AdjacencyMatrixView({
                 getItemLayout={(_, index) => ({ length: CELL, offset: CELL * index, index })}
                 initialNumToRender={14}
                 maxToRenderPerBatch={10}
-                windowSize={5}
+                // Una pantalla de filas arriba y otra abajo: cada fila son hasta 60 celdas táctiles.
+                windowSize={3}
                 renderItem={({ index }) => (
                   <MatrixRow
                     matrix={m}
                     row={index}
                     directed={directed}
                     onToggle={onToggle}
-                    headerStyle={headerStyle}
                     sticky={sticky}
                   />
                 )}
@@ -96,6 +97,10 @@ export function AdjacencyMatrixView({
       </Animated.ScrollView>
     </View>
   );
+}
+
+function headerCellStyle(theme: ReturnType<typeof useTheme>): StyleProp<ViewStyle> {
+  return [styles.cell, { backgroundColor: theme.backgroundElement, borderColor: theme.border }];
 }
 
 function HeaderCell({
@@ -119,22 +124,35 @@ function HeaderCell({
   );
 }
 
-function MatrixRow({
-  matrix: m,
-  row,
-  directed,
-  onToggle,
-  headerStyle,
-  sticky,
-}: {
+interface MatrixRowProps {
   matrix: AdjacencyMatrix;
   row: number;
   directed: boolean;
   onToggle(a: VertexId, b: VertexId): void;
-  headerStyle: StyleProp<ViewStyle>;
   sticky: ReturnType<typeof useAnimatedStyle>;
-}) {
+}
+
+// Cada toque crea una matriz nueva: se compara el contenido de la fila, no la referencia. El estilo del encabezado lo
+// arma cada fila con el tema; recibido del padre, cambiaría con cada matriz.
+const MatrixRow = memo(
+  MatrixRowView,
+  (prev: MatrixRowProps, next: MatrixRowProps) =>
+    prev.row === next.row &&
+    prev.directed === next.directed &&
+    prev.onToggle === next.onToggle &&
+    prev.sticky === next.sticky &&
+    sameMatrixRow(prev.matrix, next.matrix, prev.row),
+);
+
+function MatrixRowView({
+  matrix: m,
+  row,
+  directed,
+  onToggle,
+  sticky,
+}: MatrixRowProps) {
   const theme = useTheme();
+  const headerStyle = headerCellStyle(theme);
   const from = m.labels[row];
   const { text, fontSize } = fitLabel(from);
   return (

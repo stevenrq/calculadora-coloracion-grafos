@@ -95,6 +95,8 @@ export default function PrecedenceScreen() {
     dispatch({ type: 'saveActivity', ...input });
     setEditing(null);
   };
+  // Fuera del JSX para que el compilador la memoice: las filas de la matriz se saltan el render si no cambió.
+  const toggleEdge = (a: VertexId, b: VertexId) => dispatch({ type: 'toggleEdge', a, b });
   const removeActivity = (code: VertexId) => {
     dispatch({ type: 'removeActivity', code });
     setEditing(null);
@@ -182,7 +184,7 @@ export default function PrecedenceScreen() {
           <View style={styles.area}>
             <AdjacencyMatrixView
               graph={doc.graph}
-              onToggle={(a, b) => dispatch({ type: 'toggleEdge', a, b })}
+              onToggle={toggleEdge}
               emptyText="Todavía no hay actividades. Agrégalas en la Tabla o en el Grafo."
             />
             {snackbar}
