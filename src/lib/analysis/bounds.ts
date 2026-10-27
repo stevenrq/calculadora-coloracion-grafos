@@ -26,6 +26,7 @@ export function chromaticBounds(g: Graph, cliqueSize: number, bipartite: boolean
   if (g.vertices.length === 0) return { lower: 0, lowerReason: 'empty', deltaPlusOne, brooks };
   if (g.edges.length === 0) return { lower: 1, lowerReason: 'edgeless', deltaPlusOne, brooks };
   if (!bipartite && cliqueSize < 3) return { lower: 3, lowerReason: 'odd-cycle', deltaPlusOne, brooks };
-  // Con aristas, una arista ya es una clique de 2 (la búsqueda de clique cortada por tiempo puede devolver menos).
+  // Con aristas, la clique encontrada tiene al menos 2 vértices aunque se agote el tiempo (lo fija una prueba); el
+  // máximo con 2 es solo una red de seguridad.
   return { lower: Math.max(2, cliqueSize), lowerReason: 'clique', deltaPlusOne, brooks };
 }

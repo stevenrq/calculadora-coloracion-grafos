@@ -76,6 +76,15 @@ describe('findMaximumClique', () => {
     expect(r.exact).toBe(true);
   });
   it('vacío → []', () => expect(findMaximumClique(emptyGraph()).clique).toEqual([]));
+
+  it('con aristas, aunque el tiempo se agote de entrada, la clique tiene al menos 2 vértices', () => {
+    // El reloj se mira cada 256 llamadas y el primer descenso llega a una clique maximal antes: la tarjeta de cotas
+    // nunca dice "clique de 1 vértice" en un grafo con aristas.
+    const isolated = Array.from({ length: 58 }, (_, i) => `z${i}`);
+    const sparse: Graph = { directed: false, vertices: [...isolated, 'A', 'B'], edges: [['A', 'B']] };
+    // Peor caso: muchos vértices sin vecinos antes de la única arista.
+    expect(findMaximumClique(sparse, -1).clique.length).toBe(2);
+  });
 });
 
 describe('chromaticBounds', () => {
