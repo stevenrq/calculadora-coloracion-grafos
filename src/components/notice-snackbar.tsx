@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { contrastText } from '@/constants/palette';
@@ -13,12 +13,14 @@ const SNACKBAR_ACTION = '#8AB4F8';
 
 export function NoticeSnackbar({ notice, onUndo, onDismiss }: { notice: Notice | null; onUndo(): void; onDismiss(): void }) {
   const theme = useTheme();
+  // El temporizador depende solo del aviso: un onDismiss nuevo en cada render (una flecha en el JSX) no lo reinicia.
+  const dismiss = useEffectEvent(onDismiss);
 
   useEffect(() => {
     if (!notice) return;
-    const timer = setTimeout(onDismiss, NOTICE_DURATION_MS);
+    const timer = setTimeout(dismiss, NOTICE_DURATION_MS);
     return () => clearTimeout(timer);
-  }, [notice, onDismiss]);
+  }, [notice]);
 
   if (!notice) return null;
 

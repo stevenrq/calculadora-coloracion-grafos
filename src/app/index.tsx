@@ -71,6 +71,7 @@ export default function ColorScreen() {
   const [practice, setPractice] = useState<Coloring | null>(null);
   const [brush, setBrush] = useState<number | null>(0);
   const [verdictShown, setVerdictShown] = useState(false);
+  const [practiceNotice, setPracticeNotice] = useState<Notice | null>(null);
   const practicing = practice !== null && mode === 'draw';
   // Abrir un ejemplo o un guardado desde otra pestaña muestra el dibujo, sin el modo práctica.
   const { open: openRequest } = useLocalSearchParams<{ open?: string }>();
@@ -110,7 +111,12 @@ export default function ColorScreen() {
     practiceColoring && verdictShown && practiceAnalysis
       ? practiceVerdict(doc.graph, practiceColoring, practiceAnalysis.chromatic)
       : null;
-  const practiceNotice: Notice | null = verdict && { kind: verdict.ok ? 'info' : 'error', message: verdict.message };
+  // Cada avance de χ vuelve a calcular el veredicto: el aviso conserva su objeto mientras el texto no cambie, para no
+  // reiniciar el temporizador del snackbar. Ajuste de estado durante el render.
+  const verdictNotice: Notice | null = verdict && { kind: verdict.ok ? 'info' : 'error', message: verdict.message };
+  if (verdictNotice?.kind !== practiceNotice?.kind || verdictNotice?.message !== practiceNotice?.message) {
+    setPracticeNotice(verdictNotice);
+  }
 
   // Encuadrar al conocer el tamaño del lienzo, cada vez que el reducer lo pide y al abrir/cerrar los resultados
   // (con la hoja abierta, solo en la parte de arriba que queda visible). Ajuste de estado durante el render.
