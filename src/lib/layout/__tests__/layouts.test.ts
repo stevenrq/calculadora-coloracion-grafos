@@ -178,9 +178,11 @@ describe('autoLayout: grafos densos', () => {
 
   it('60 vértices y 600 aristas (el máximo): sin solapes y en menos de un segundo', () => {
     const g = randomGraph(60, 600, 11);
-    const start = Date.now();
+    // Tiempo de CPU, no de reloj: con los workers de Jest en paralelo el reloj mide también la carga de la máquina.
+    const before = process.cpuUsage();
     const pos = autoLayout(g, WORLD_BOX);
-    expect(Date.now() - start).toBeLessThan(1000);
+    const cpu = process.cpuUsage(before);
+    expect((cpu.user + cpu.system) / 1000).toBeLessThan(1000);
     expectReadable(g, pos);
   });
 });

@@ -85,9 +85,11 @@ describe('layeredLayout', () => {
   it('60 actividades y 600 flechas (el máximo): columnas por etapa en menos de un segundo', () => {
     const g = randomDag(60, 600, 3);
     const stageOf = stagesOf(g);
-    const start = Date.now();
+    // Tiempo de CPU, no de reloj: con los workers de Jest en paralelo el reloj mide también la carga de la máquina.
+    const before = process.cpuUsage();
     const pos = layeredLayout(g, stageOf, WORLD_BOX);
-    expect(Date.now() - start).toBeLessThan(1000);
+    const cpu = process.cpuUsage(before);
+    expect((cpu.user + cpu.system) / 1000).toBeLessThan(1000);
     expectColumns(g, pos, stageOf);
   });
 
