@@ -146,3 +146,24 @@ describe('toggleEdge en precedencias (vista Matriz)', () => {
     expect(next.notice?.message).toBe('Se quitó A de las predecesoras de B.');
   });
 });
+
+describe('las acciones del lienzo conservan nombres, duraciones y unidad', () => {
+  const withUnit = (): EditorState => {
+    const s = homework();
+    return { ...s, doc: { ...s.doc, unit: 'días' } };
+  };
+
+  it.each<[string, PrecedenceAction[]]>([
+    ['tocar el lienzo vacío (nueva actividad)', [{ type: 'tapEmpty', point: { x: 10, y: 10 } }]],
+    ['unir dos actividades', [{ type: 'tapVertex', id: 'A' }, { type: 'tapVertex', id: 'M' }]],
+    ['arrastrar una actividad', [{ type: 'dragStart' }, { type: 'dragMove', id: 'A', point: { x: 5, y: 5 } }]],
+    ['alternar una flecha en la matriz', [{ type: 'toggleEdge', a: 'A', b: 'M' }]],
+    ['reorganizar', [{ type: 'setPositions', positions: {} }]],
+  ])('%s', (_, actions) => {
+    const before = withUnit();
+    const after = run(before, ...actions);
+    expect(after.doc.unit).toBe('días');
+    expect(after.doc.activities?.A).toEqual(before.doc.activities?.A);
+    expect(Object.keys(after.doc.activities ?? {})).toHaveLength(13);
+  });
+});

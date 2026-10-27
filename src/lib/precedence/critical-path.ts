@@ -70,6 +70,14 @@ export function criticalPath(acts: readonly Activity[], order: readonly VertexId
     }
   }
 
+  // Una ruta va de una crítica sin flecha crítica que entre a una sin flecha crítica que salga. Con hitos de duración 0
+  // no basta con mirar es = 0 o ef = total: un hito al inicio o al final comparte esos valores con su vecina.
+  const criticalNext = new Map<VertexId, VertexId[]>(critical.map((code) => [code, []]));
+  const hasCriticalIn = new Set<VertexId>();
+  for (const [p, a] of criticalEdges) {
+    criticalNext.get(p)?.push(a);
+    hasCriticalIn.add(a);
+  }
   const paths: VertexId[][] = [];
   let pathsTruncated = false;
   const walk = (path: VertexId[]) => {
@@ -77,14 +85,14 @@ export function criticalPath(acts: readonly Activity[], order: readonly VertexId
       pathsTruncated = true;
       return;
     }
-    const last = path[path.length - 1];
-    if (rows[last].ef === total) {
+    const next = criticalNext.get(path[path.length - 1]) ?? [];
+    if (next.length === 0) {
       paths.push(path);
       return;
     }
-    for (const [p, a] of criticalEdges) if (p === last) walk([...path, a]);
+    for (const a of next) walk([...path, a]);
   };
-  for (const code of critical) if (rows[code].es === 0) walk([code]);
+  for (const code of critical) if (!hasCriticalIn.has(code)) walk([code]);
 
   return { rows, total, critical, criticalEdges, paths, pathsTruncated };
 }

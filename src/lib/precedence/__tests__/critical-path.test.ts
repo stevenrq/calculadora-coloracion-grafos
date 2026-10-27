@@ -66,3 +66,15 @@ describe('criticalPath: casos especiales', () => {
     expect(missingDurations(acts)).toEqual(['C']);
   });
 });
+
+describe('criticalPath: hitos de duración 0', () => {
+  it('un hito al inicio no genera una ruta suelta que empiece después de él', () => {
+    expect(schedule([act('A', [], 0), act('B', ['A'], 2)])!.paths).toEqual([['A', 'B']]);
+  });
+
+  it('un hito al final cierra la ruta en vez de quedar fuera de ella', () => {
+    const result = schedule([act('A', [], 2), act('B', ['A'], 0)])!;
+    expect(result.critical).toEqual(['A', 'B']);
+    expect(result.paths).toEqual([['A', 'B']]);
+  });
+});

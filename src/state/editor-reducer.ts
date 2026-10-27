@@ -105,7 +105,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const label = nextLabel(doc.graph.vertices);
       const r = addVertex(doc.graph, label);
       if (!r.ok) return { ...state, notice: errorNotice(r.error) };
-      return commit(state, { graph: r.graph, positions: { ...doc.positions, [label]: action.point } });
+      return commit(state, { ...doc, graph: r.graph, positions: { ...doc.positions, [label]: action.point } });
     }
 
     case 'tapVertex': {
