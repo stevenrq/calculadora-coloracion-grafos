@@ -45,7 +45,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-    paddingHorizontal: Spacing.three,
+    // Los segmentos se reparten el ancho (flex 1): el relleno solo cuenta cuando el control se encoge.
+    paddingHorizontal: Spacing.two,
   },
   selected: { elevation: 2 },
   label: { fontSize: 14, fontWeight: '700' },

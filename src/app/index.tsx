@@ -16,6 +16,7 @@ import { ResultsPanel } from '@/components/results/results-panel';
 import { ResultsSheet, SHEET_PEEK } from '@/components/results/results-sheet';
 import { type BridgePaint, StageBridgeCard } from '@/components/results/stage-bridge-card';
 import { SegmentedControl } from '@/components/segmented-control';
+import { SettingsButton } from '@/components/settings-button';
 import { SelectionBar } from '@/components/selection-bar';
 import { coloringColors } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
@@ -208,6 +209,7 @@ export default function ColorScreen() {
           <Text style={[styles.counts, { color: theme.textSecondary }]} numberOfLines={2}>
             {countsLabel(vertexCount, edgeCount)}
           </Text>
+          <SettingsButton />
         </View>
         <View style={styles.canvasArea}>
           <AdjacencyMatrixView
@@ -230,6 +232,7 @@ export default function ColorScreen() {
           <View style={styles.modeSwitch}>
             <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={changeMode} />
           </View>
+          <SettingsButton />
         </View>
         <View style={styles.canvasArea}>
           <GraphTextEditor graph={doc.graph} directed={doc.graph.directed} onApply={applyText} />
@@ -246,6 +249,7 @@ export default function ColorScreen() {
           <Text style={[styles.practiceTitle, { color: theme.text }]} accessibilityRole="header">
             Colorea tú: elige un color y toca vértices
           </Text>
+          <SettingsButton />
         </View>
       ) : (
         <View style={styles.header}>
@@ -255,6 +259,7 @@ export default function ColorScreen() {
           <Text style={[styles.counts, { color: theme.textSecondary }]} numberOfLines={2}>
             {countsLabel(vertexCount, edgeCount)}
           </Text>
+          <SettingsButton />
         </View>
       )}
 
@@ -366,12 +371,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.two,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
-  modeSwitch: { flexBasis: 270, flexShrink: 1 },
-  counts: { flex: 1, fontSize: 13, lineHeight: 18, textAlign: 'right' },
+  modeSwitch: { flexBasis: 240, flexShrink: 1 },
+  counts: { flex: 1, fontSize: 12, lineHeight: 16, textAlign: 'right' },
   body: { flex: 1 },
   canvasArea: { flex: 1 },
   // box-none: los toques fuera del botón llegan al lienzo y crean el vértice.

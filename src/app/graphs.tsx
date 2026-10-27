@@ -8,6 +8,7 @@ import { NoticeSnackbar } from '@/components/notice-snackbar';
 import { SavedGraphCard, SavedGraphMenu } from '@/components/saved-graph-card';
 import { Spacing } from '@/constants/theme';
 import { useModuleLoader } from '@/hooks/use-module-loader';
+import { SettingsButton } from '@/components/settings-button';
 import { useTheme } from '@/hooks/use-theme';
 import { COLORING_EXAMPLES, type ColoringExample } from '@/lib/examples/coloring-examples';
 import { coloringExampleDoc, precedenceExampleDoc } from '@/lib/examples/example-docs';
@@ -75,7 +76,12 @@ export default function GraphsScreen() {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { color: theme.text }]}>Mis grafos</Text>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
+            Mis grafos
+          </Text>
+          <SettingsButton />
+        </View>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Toca un grafo para abrirlo.</Text>
 
         <Text style={[styles.section, { color: theme.textSecondary }]}>Guardados</Text>
@@ -200,7 +206,8 @@ export default function GraphsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: Spacing.three, gap: Spacing.two },
-  title: { fontSize: 28, lineHeight: 36, fontWeight: '700' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  title: { flex: 1, fontSize: 28, lineHeight: 36, fontWeight: '700' },
   subtitle: { fontSize: 14, lineHeight: 20 },
   section: {
     fontSize: 13,

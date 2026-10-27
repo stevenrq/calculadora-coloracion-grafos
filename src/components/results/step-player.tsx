@@ -7,10 +7,9 @@ import { ResultCard } from '@/components/results/result-card';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PLAYBACK_SPEEDS, speedLabel, stepIntervalMs } from '@/lib/coloring/replay';
+import { useSettings } from '@/state/settings-context';
 
 type IconName = ComponentProps<typeof MaterialIcons>['name'];
-
-const DEFAULT_SPEED_INDEX = PLAYBACK_SPEEDS.indexOf(1);
 
 function ControlButton({
   icon,
@@ -67,7 +66,9 @@ export function StepPlayer({
 }) {
   const theme = useTheme();
   const [playing, setPlaying] = useState(false);
-  const [speedIndex, setSpeedIndex] = useState(DEFAULT_SPEED_INDEX);
+  const { settings } = useSettings();
+  // La velocidad de Ajustes es solo la inicial: cambiarla aquí no toca el ajuste.
+  const [speedIndex, setSpeedIndex] = useState(() => PLAYBACK_SPEEDS.indexOf(settings.speed));
   const [seenKey, setSeenKey] = useState(resetKey);
   if (seenKey !== resetKey) {
     setSeenKey(resetKey);

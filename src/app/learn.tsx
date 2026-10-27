@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SettingsButton } from '@/components/settings-button';
 import { Spacing } from '@/constants/theme';
 import { LEARN_SECTIONS, type LearnBlock, type LearnTopic } from '@/content/learn';
 import { useModuleLoader } from '@/hooks/use-module-loader';
@@ -26,7 +27,12 @@ export default function LearnScreen() {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { color: theme.text }]}>Aprende</Text>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
+            Aprende
+          </Text>
+          <SettingsButton />
+        </View>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
           Teoría breve. Toca un tema para abrirlo y «Probar» para cargar el ejemplo.
         </Text>
@@ -139,7 +145,8 @@ function Block({ block }: { block: LearnBlock }) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: Spacing.three, gap: Spacing.two, paddingBottom: Spacing.five },
-  title: { fontSize: 28, lineHeight: 36, fontWeight: '700' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  title: { flex: 1, fontSize: 28, lineHeight: 36, fontWeight: '700' },
   subtitle: { fontSize: 14, lineHeight: 20 },
   sectionBox: { gap: Spacing.two, marginTop: Spacing.three },
   section: { fontSize: 13, lineHeight: 18, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },

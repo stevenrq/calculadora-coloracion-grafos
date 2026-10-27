@@ -3,6 +3,7 @@ import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import AppTabs from '@/components/app-tabs';
+import { SettingsSheet } from '@/components/settings-sheet';
 import { EditorProvider } from '@/state/editor-context';
 import { SavedGraphsProvider } from '@/state/saved-graphs-context';
 import { SettingsProvider } from '@/state/settings-context';
@@ -27,6 +28,7 @@ function ThemedRoot() {
           <AppTabs />
         </EditorProvider>
       </SavedGraphsProvider>
+      <SettingsSheet />
     </ThemeProvider>
   );
 }
