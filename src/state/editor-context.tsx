@@ -1,7 +1,9 @@
-import { createContext, type Dispatch, type ReactNode, use, useEffect, useReducer } from 'react';
+import { createContext, type Dispatch, type ReactNode, use, useEffect, useReducer, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { DEFAULT_UNIT } from '@/lib/precedence/types';
-import { type EditorAction, editorReducer, type EditorState, initialEditorState } from './editor-reducer';
+import { createAutosaver } from './autosaver';
+import { type EditorAction, type EditorDoc, editorReducer, type EditorState, initialEditorState } from './editor-reducer';
 import { emptyPrecedenceDoc, type PrecedenceAction, precedenceReducer } from './precedence-reducer';
 import { StageBridgeProvider } from './stage-bridge';
 import { type DocKey, loadDoc, saveDoc } from './storage';
@@ -27,12 +29,24 @@ function initialPrecedence(): EditorState {
   return initialEditorState({ ...saved, activities: saved.activities ?? {}, unit: saved.unit ?? DEFAULT_UNIT });
 }
 
-/** Guarda el documento medio segundo después del último cambio. */
+/** Guarda el documento medio segundo después del último cambio, y al instante si la app pasa a segundo plano. */
 function useAutosave(key: DocKey, state: EditorState) {
+  const [saver] = useState(() => createAutosaver((doc: EditorDoc) => saveDoc(key, doc), AUTOSAVE_DELAY_MS));
+
   useEffect(() => {
-    const timer = setTimeout(() => saveDoc(key, state.doc), AUTOSAVE_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [key, state.doc]);
+    saver.schedule(state.doc);
+  }, [saver, state.doc]);
+
+  useEffect(() => {
+    // Android puede cerrar la app en segundo plano sin avisar: lo pendiente se guarda antes.
+    const subscription = AppState.addEventListener('change', (status) => {
+      if (status !== 'active') saver.flush();
+    });
+    return () => {
+      subscription.remove();
+      saver.flush();
+    };
+  }, [saver]);
 }
 
 /** Estado de los dos editores (Colorear y Precedencias), compartido entre pestañas y autoguardado. */
