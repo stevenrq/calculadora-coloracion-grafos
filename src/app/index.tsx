@@ -129,6 +129,8 @@ export default function ColorScreen() {
 
   const vertexCount = doc.graph.vertices.length;
   const edgeCount = doc.graph.edges.length;
+  // La imagen lleva χ: mientras se calcula (3 s como mucho, o hasta Cancelar) diría "calculando…".
+  const canShare = results.displayed !== null && results.analysis?.chromatic.status !== 'running';
 
   const relayout = () => {
     if (vertexCount > 0) dispatch({ type: 'setPositions', positions: autoLayout(doc.graph, WORLD_BOX) });
@@ -345,12 +347,12 @@ export default function ColorScreen() {
           actions={
             <Pressable
               onPress={() => setSharing(true)}
-              disabled={!results.displayed}
+              disabled={!canShare}
               accessibilityRole="button"
               accessibilityLabel="Compartir imagen del grafo coloreado"
-              accessibilityState={{ disabled: !results.displayed }}
+              accessibilityState={{ disabled: !canShare }}
               style={({ pressed }) => [styles.iconButton, pressed && { backgroundColor: theme.backgroundSelected }]}>
-              <MaterialIcons name="share" size={24} color={results.displayed ? theme.text : theme.textSecondary} />
+              <MaterialIcons name="share" size={24} color={canShare ? theme.text : theme.textSecondary} />
             </Pressable>
           }>
           <ResultsPanel
