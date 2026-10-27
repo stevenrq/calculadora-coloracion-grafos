@@ -26,6 +26,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>Mis grafos</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon md="folder_open" />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="learn">
+        <NativeTabs.Trigger.Label>Aprende</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon md="school" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
