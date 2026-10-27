@@ -1,4 +1,4 @@
-import { isValidLabel, undirectedAdjacency } from './graph';
+import { graphKey, isValidLabel, undirectedAdjacency } from './graph';
 import { type Edge, type Graph, LIMITS, type VertexId } from './types';
 
 export type TextFormat = 'edges' | 'adjacency';
@@ -15,7 +15,7 @@ export interface ParseResult {
   warnings: ParseIssue[];
 }
 
-const EDGE_SEPARATOR = /\s*(?:->|→|-)\s*|\s+/u;
+const EDGE_SEPARATOR = /\s*(?:->|→|-|–|—)\s*|\s+/u;
 
 const invalidLabel = (n: number, label: string) =>
   `Línea ${n}: '${label}' no es una etiqueta válida (usa letras, dígitos o _, máximo ${LIMITS.maxLabelLength} caracteres).`;
@@ -154,4 +154,16 @@ export function graphToText(g: Graph, format: TextFormat): string {
       return neighbors.length > 0 ? `${v}: ${neighbors.join(', ')}` : `${v}:`;
     })
     .join('\n');
+}
+
+/** Texto que se está editando y la clave del grafo del que partió. */
+export interface TextDraft {
+  key: string;
+  text: string;
+}
+
+/** Si el grafo cambió desde afuera (ejemplo cargado, deshacer), regenera el texto; si no, conserva el borrador. */
+export function resyncDraft(draft: TextDraft, g: Graph, format: TextFormat): TextDraft {
+  const key = graphKey(g);
+  return key === draft.key ? draft : { key, text: graphToText(g, format) };
 }

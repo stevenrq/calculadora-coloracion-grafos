@@ -6,7 +6,7 @@ import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { countsLabel } from '@/lib/format';
 import { graphKey } from '@/lib/graph/graph';
-import { graphToText, parseGraphText, type TextFormat } from '@/lib/graph/text';
+import { graphToText, parseGraphText, resyncDraft, type TextDraft, type TextFormat } from '@/lib/graph/text';
 import type { Graph } from '@/lib/graph/types';
 
 const PARSE_DELAY_MS = 250;
@@ -32,9 +32,18 @@ export function GraphTextEditor({
 }) {
   const theme = useTheme();
   const [format, setFormat] = useState<TextFormat>('edges');
-  const [text, setText] = useState(() => graphToText(graph, 'edges'));
+  const [draft, setDraft] = useState<TextDraft>(() => ({ key: graphKey(graph), text: graphToText(graph, 'edges') }));
   // Texto ya analizado: va 250 ms por detrás de lo que se escribe.
-  const [parsedText, setParsedText] = useState(text);
+  const [parsedText, setParsedText] = useState(draft.text);
+
+  // Vistas siempre sincronizadas: si el grafo cambió desde afuera (ejemplo, deshacer), se regenera el texto.
+  const synced = resyncDraft(draft, graph, format);
+  if (synced !== draft) {
+    setDraft(synced);
+    setParsedText(synced.text);
+  }
+  const text = synced.text;
+  const setText = (next: string) => setDraft({ key: synced.key, text: next });
 
   useEffect(() => {
     const timer = setTimeout(() => setParsedText(text), PARSE_DELAY_MS);
@@ -49,7 +58,7 @@ export function GraphTextEditor({
     const source = parseGraphText(text, format, directed).graph ?? graph;
     const regenerated = graphToText(source, next);
     setFormat(next);
-    setText(regenerated);
+    setDraft({ key: synced.key, text: regenerated });
     setParsedText(regenerated);
   };
 
@@ -57,7 +66,10 @@ export function GraphTextEditor({
     // Analizar lo que está escrito ahora, no lo de hace 250 ms.
     const fresh = parseGraphText(text, format, directed);
     setParsedText(text);
-    if (fresh.graph && graphKey(fresh.graph) !== graphKey(graph)) onApply(fresh.graph);
+    if (!fresh.graph || graphKey(fresh.graph) === graphKey(graph)) return;
+    // El borrador ya corresponde al grafo aplicado: conservar lo escrito en vez de regenerarlo.
+    setDraft({ key: graphKey(fresh.graph), text });
+    onApply(fresh.graph);
   };
 
   const summary = result.graph ? countsLabel(result.graph.vertices.length, result.graph.edges.length) : 'Revisa los errores';

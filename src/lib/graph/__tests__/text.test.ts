@@ -1,5 +1,5 @@
 import { graphKey } from '../graph';
-import { graphToText, parseGraphText } from '../text';
+import { graphToText, parseGraphText, resyncDraft } from '../text';
 
 describe('parseGraphText', () => {
   it('lista de aristas con separadores variados', () => {
@@ -76,5 +76,31 @@ describe('graphToText', () => {
   it('formato de aristas: una por línea; dirigido usa ->', () => {
     expect(graphToText(parseGraphText('A-B', 'edges', false).graph!, 'edges')).toBe('A-B');
     expect(graphToText(parseGraphText('A->B', 'edges', true).graph!, 'edges')).toBe('A->B');
+  });
+});
+
+describe('guiones tipográficos', () => {
+  it('acepta – y — como separador de arista (Word los pone solos)', () => {
+    const r = parseGraphText('A – B, B—C', 'edges', false);
+    expect(r.errors).toEqual([]);
+    expect(r.graph?.edges).toEqual([
+      ['A', 'B'],
+      ['B', 'C'],
+    ]);
+  });
+});
+
+describe('resyncDraft', () => {
+  const triangle = parseGraphText('A-B, B-C, C-A', 'edges', false).graph!;
+  const path = parseGraphText('X-Y', 'edges', false).graph!;
+
+  it('si el grafo no cambió, conserva lo que el usuario escribió', () => {
+    const draft = { key: graphKey(triangle), text: 'A-B, B-C, C-A, C-D' };
+    expect(resyncDraft(draft, triangle, 'edges')).toBe(draft);
+  });
+
+  it('si el grafo cambió desde afuera (ejemplo, deshacer), regenera el texto en el formato actual', () => {
+    const draft = { key: graphKey(triangle), text: 'A-B, B-C, C-A' };
+    expect(resyncDraft(draft, path, 'edges')).toEqual({ key: graphKey(path), text: graphToText(path, 'edges') });
   });
 });

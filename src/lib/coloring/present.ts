@@ -5,9 +5,15 @@ export type ChromaticState = { status: 'running'; k: number | null } | ExactOutc
 
 export type KeyedChromatic = { key: string; state: ChromaticState } | null;
 
-/** Un χ ya demostrado para el mismo grafo no se degrada (p. ej. al reabrir la hoja y relanzar la búsqueda). */
+/**
+ * Un χ ya demostrado para el mismo grafo no se degrada (p. ej. al reabrir la hoja y relanzar la búsqueda).
+ * Si el progreso no cambió (mismo k), devuelve el estado previo: React omite el render y la búsqueda no se frena.
+ */
 export function keepProven(prev: KeyedChromatic, next: { key: string; state: ChromaticState }): KeyedChromatic {
-  return prev?.key === next.key && prev.state.status === 'exact' ? prev : next;
+  if (prev?.key !== next.key) return next;
+  if (prev.state.status === 'exact') return prev;
+  if (prev.state.status === 'running' && next.state.status === 'running' && prev.state.k === next.state.k) return prev;
+  return next;
 }
 
 /** Coloración que se pinta según el algoritmo elegido. Auto/Exacto usan DSATUR mientras la búsqueda corre. */

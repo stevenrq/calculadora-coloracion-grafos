@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import type { ReactNode } from 'react';
-import { type LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { type ReactNode, useEffect } from 'react';
+import { BackHandler, type LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GestureDetector, useExclusiveGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -28,6 +28,15 @@ function SheetBody({ onClose, children }: { onClose(): void; children: ReactNode
   const height = useSharedValue(0);
   const limits = useSharedValue({ peek: 0, expanded: 0 });
   const dragStart = useSharedValue(0);
+
+  // En Android, "Atrás" cierra la hoja en vez de salir de la app.
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [onClose]);
 
   const handleLayout = (e: LayoutChangeEvent) => {
     const available = e.nativeEvent.layout.height;

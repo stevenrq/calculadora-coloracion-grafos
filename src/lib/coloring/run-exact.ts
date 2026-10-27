@@ -1,5 +1,5 @@
 import type { Graph } from '@/lib/graph/types';
-import { type ExactProgress, exactBounds, exactSearch } from './exact';
+import { type ExactBounds, type ExactProgress, exactBounds, exactSearch } from './exact';
 import type { ColoringResult } from './types';
 
 export const DEFAULT_EXACT_BUDGET_MS = 3000;
@@ -19,13 +19,15 @@ export async function runExact(
   g: Graph,
   opts: {
     budgetMs: number;
+    /** Cotas ya calculadas (p. ej. por el análisis de la hoja) para no repetir clique y DSATUR. */
+    bounds?: ExactBounds;
     isCancelled?: () => boolean;
     onProgress?: (p: ExactProgress) => void;
     nodesPerChunk?: number;
   },
 ): Promise<ExactOutcome> {
   const start = Date.now();
-  const bounds = exactBounds(g);
+  const bounds = opts.bounds ?? exactBounds(g);
   const search = exactSearch(g, { bounds, nodesPerChunk: opts.nodesPerChunk });
   const unproven = (status: 'timeout' | 'cancelled'): ExactOutcome => ({
     status,

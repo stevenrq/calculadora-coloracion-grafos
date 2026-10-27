@@ -53,3 +53,12 @@ describe('keepProven', () => {
     expect(keepProven(null, next)).toBe(next);
   });
 });
+
+describe('keepProven sin cambios', () => {
+  it('el mismo progreso (misma clave y mismo k) devuelve el estado previo, así React no vuelve a renderizar', () => {
+    const prev = { key: 'g1', state: { status: 'running' as const, k: 4 } };
+    expect(keepProven(prev, { key: 'g1', state: { status: 'running', k: 4 } })).toBe(prev);
+    const next = { key: 'g1', state: { status: 'running' as const, k: 5 } };
+    expect(keepProven(prev, next)).toBe(next);
+  });
+});

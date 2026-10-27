@@ -30,7 +30,13 @@ export function useColoringAnalysis(
   const search = useEffectEvent(
     async (isCancelled: () => boolean, onProgress: (p: ExactProgress) => void): Promise<ExactOutcome> => {
       try {
-        return await runExact(graph, { budgetMs: DEFAULT_EXACT_BUDGET_MS, isCancelled, onProgress });
+        // Reutilizar las cotas del análisis: clique y DSATUR ya se calcularon de forma síncrona.
+        const bounds = structural && {
+          lower: structural.bounds.lower,
+          upper: structural.heuristics.dsatur.colorsUsed,
+          dsatur: structural.heuristics.dsatur,
+        };
+        return await runExact(graph, { budgetMs: DEFAULT_EXACT_BUDGET_MS, bounds: bounds ?? undefined, isCancelled, onProgress });
       } catch (error) {
         // No dejar la tarjeta en "Calculando…" para siempre: se muestra la cota de DSATUR.
         console.error('Falló la búsqueda exacta', error);
