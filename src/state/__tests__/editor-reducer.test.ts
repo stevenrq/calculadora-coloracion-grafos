@@ -106,3 +106,10 @@ it('en modo dirigido B luego A crea B→A', () => {
   );
   expect(s.doc.graph.edges).toEqual([['B', 'A']]);
 });
+
+it('en coloración, renombrar y borrar no crean datos de actividades', () => {
+  const renamed = run(abc(), { type: 'tapVertex', id: 'A' }, { type: 'renameSelected', to: 'X' });
+  expect('activities' in renamed.doc).toBe(false);
+  const deleted = run(renamed, { type: 'tapVertex', id: 'X' }, { type: 'deleteSelection' });
+  expect('activities' in deleted.doc).toBe(false);
+});

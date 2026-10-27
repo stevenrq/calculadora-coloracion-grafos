@@ -3,7 +3,7 @@ import Storage from 'expo-sqlite/kv-store';
 import { deserializeDoc, serializeDoc } from './doc-serialization';
 import type { EditorDoc } from './editor-reducer';
 
-export type DocKey = 'coloring';
+export type DocKey = 'coloring' | 'precedence';
 
 const storageKey = (key: DocKey) => `doc:${key}`;
 

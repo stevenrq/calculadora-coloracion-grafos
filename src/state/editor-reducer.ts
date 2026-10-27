@@ -8,10 +8,15 @@ import {
   renameVertex,
 } from '@/lib/graph/graph';
 import type { Edge, EditError, Graph, Point, Positions, VertexId } from '@/lib/graph/types';
+import type { ActivityInfoMap, DurationUnit } from '@/lib/precedence/types';
 
 export interface EditorDoc {
   graph: Graph;
   positions: Positions;
+  /** Solo en precedencias: nombre y duración de cada actividad (la clave es el código, que es el vértice). */
+  activities?: ActivityInfoMap;
+  /** Solo en precedencias: unidad de las duraciones. */
+  unit?: DurationUnit;
 }
 
 export type Selection = { kind: 'none' } | { kind: 'vertex'; id: VertexId } | { kind: 'edge'; edge: Edge };
@@ -58,7 +63,7 @@ export const EDIT_ERROR_MESSAGES: Record<EditError, string> = {
   'unknown-vertex': 'Ese vértice no existe.',
 };
 
-const NO_SELECTION: Selection = { kind: 'none' };
+export const NO_SELECTION: Selection = { kind: 'none' };
 
 export function emptyDoc(directed = false): EditorDoc {
   return { graph: emptyGraph(directed), positions: {} };
@@ -71,16 +76,21 @@ export function initialEditorState(doc?: EditorDoc | null, directed = false): Ed
 const pushPast = (state: EditorState) => [...state.past, state.doc].slice(-HISTORY_LIMIT);
 
 /** Aplica un documento nuevo guardando el anterior en el historial. */
-function commit(state: EditorState, doc: EditorDoc, extra: Partial<EditorState> = {}): EditorState {
+export function commit(state: EditorState, doc: EditorDoc, extra: Partial<EditorState> = {}): EditorState {
   return { ...state, doc, past: pushPast(state), future: [], ...extra };
 }
 
-const errorNotice = (error: EditError): Notice => ({ kind: 'error', message: EDIT_ERROR_MESSAGES[error] });
-const undoableNotice = (message: string): Notice => ({ kind: 'info', message, undoable: true });
+export const errorNotice = (error: EditError): Notice => ({ kind: 'error', message: EDIT_ERROR_MESSAGES[error] });
+export const undoableNotice = (message: string): Notice => ({ kind: 'info', message, undoable: true });
 
-function withoutKey(positions: Positions, id: VertexId): Positions {
-  const { [id]: _removed, ...rest } = positions;
+export function withoutKey<T>(map: Readonly<Record<VertexId, T>>, id: VertexId): Record<VertexId, T> {
+  const { [id]: _removed, ...rest } = map;
   return rest;
+}
+
+/** Cambia una clave conservando el orden de las demás. */
+export function renameKey<T>(map: Readonly<Record<VertexId, T>>, from: VertexId, to: VertexId): Record<VertexId, T> {
+  return Object.fromEntries(Object.entries(map).map(([k, value]) => [k === from ? to : k, value]));
 }
 
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
@@ -119,9 +129,10 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'deleteSelection': {
       if (selection.kind === 'vertex') {
         const graph = removeVertex(doc.graph, selection.id);
+        const activities = doc.activities && { activities: withoutKey(doc.activities, selection.id) };
         return commit(
           state,
-          { graph, positions: withoutKey(doc.positions, selection.id) },
+          { ...doc, graph, positions: withoutKey(doc.positions, selection.id), ...activities },
           { selection: NO_SELECTION, notice: undoableNotice(`Se borró el vértice ${selection.id}.`) },
         );
       }
@@ -142,10 +153,12 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const r = renameVertex(doc.graph, selection.id, to);
       if (!r.ok) return { ...state, notice: errorNotice(r.error) };
       if (r.graph === doc.graph) return state;
-      const positions = Object.fromEntries(
-        Object.entries(doc.positions).map(([v, p]) => [v === selection.id ? to : v, p]),
+      const activities = doc.activities && { activities: renameKey(doc.activities, selection.id, to) };
+      return commit(
+        state,
+        { ...doc, graph: r.graph, positions: renameKey(doc.positions, selection.id, to), ...activities },
+        { selection: { kind: 'vertex', id: to } },
       );
-      return commit(state, { graph: r.graph, positions }, { selection: { kind: 'vertex', id: to } });
     }
 
     case 'replaceDoc':
