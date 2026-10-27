@@ -47,7 +47,8 @@ export const ARROW_WIDTH = 10;
 
 /**
  * Flecha de `a` a `b` entre dos círculos de radio `radius`: la línea va del borde de `a` a la base de la punta, y la
- * punta toca el borde de `b`. `null` si no queda sitio para la punta (círculos encimados o casi).
+ * punta toca el borde de `b`. Si el hueco entre los círculos es menor que la punta, la punta se encoge hasta llenarlo.
+ * `null` si los círculos se tocan o se enciman: no queda hueco y los vértices la taparían.
  */
 export function arrowGeometry(
   a: Point,
@@ -57,12 +58,14 @@ export function arrowGeometry(
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  if (d - 2 * radius < ARROW_LENGTH) return null;
+  const gap = d - 2 * radius;
+  if (gap <= 0) return null;
+  const length = Math.min(ARROW_LENGTH, gap);
   const ux = dx / d;
   const uy = dy / d;
   const tip = { x: b.x - ux * radius, y: b.y - uy * radius };
-  const base = { x: tip.x - ux * ARROW_LENGTH, y: tip.y - uy * ARROW_LENGTH };
-  const half = ARROW_WIDTH / 2;
+  const base = { x: tip.x - ux * length, y: tip.y - uy * length };
+  const half = (ARROW_WIDTH * length) / ARROW_LENGTH / 2;
   return {
     x1: a.x + ux * radius,
     y1: a.y + uy * radius,

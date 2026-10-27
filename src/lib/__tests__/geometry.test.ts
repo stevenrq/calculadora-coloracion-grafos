@@ -53,8 +53,17 @@ describe('arrowGeometry', () => {
     expect(g.y1).toBeCloseTo(78);
   });
 
-  it('con los círculos encimados no hay flecha', () => {
+  it('si la punta no cabe entera, se encoge para llenar el hueco y la dirección se sigue viendo', () => {
+    const g = arrowGeometry({ x: 0, y: 0 }, { x: 50, y: 0 }, 22)!;
+    expect(g.head[0]).toEqual({ x: 28, y: 0 });
+    expect(g.head[1].x).toBeCloseTo(22);
+    expect(Math.abs(g.head[1].y - g.head[2].y)).toBeCloseTo((ARROW_WIDTH * 6) / ARROW_LENGTH);
+    expect(g.x2).toBeCloseTo(g.x1);
+  });
+
+  it('con los círculos encimados no hay flecha (los vértices la tapan, como a una arista)', () => {
     expect(arrowGeometry({ x: 0, y: 0 }, { x: 30, y: 0 }, 22)).toBeNull();
+    expect(arrowGeometry({ x: 0, y: 0 }, { x: 44, y: 0 }, 22)).toBeNull();
   });
 });
 
