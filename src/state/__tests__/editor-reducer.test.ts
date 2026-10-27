@@ -150,3 +150,14 @@ describe('toggleEdge (vista Matriz)', () => {
     expect(next.notice?.message).toBe('Llegaste al máximo de 600 aristas.');
   });
 });
+
+describe('notify', () => {
+  it('muestra un aviso sin tocar el doc ni el historial', () => {
+    const s = run(initialEditorState(), { type: 'tapEmpty', point: P(0) });
+    const notified = editorReducer(s, { type: 'notify', message: 'Se guardó «X» en Mis grafos.' });
+    expect(notified.notice).toEqual({ kind: 'info', message: 'Se guardó «X» en Mis grafos.' });
+    expect(notified.doc).toBe(s.doc);
+    expect(notified.past).toBe(s.past);
+    expect(notified.future).toBe(s.future);
+  });
+});

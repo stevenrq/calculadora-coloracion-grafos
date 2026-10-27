@@ -1,94 +1,109 @@
-import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GraphThumbnail } from '@/components/graph-thumbnail';
+import { NameDialog } from '@/components/name-dialog';
+import { NoticeSnackbar } from '@/components/notice-snackbar';
+import { SavedGraphCard, SavedGraphMenu } from '@/components/saved-graph-card';
 import { Spacing } from '@/constants/theme';
+import { useModuleLoader } from '@/hooks/use-module-loader';
 import { useTheme } from '@/hooks/use-theme';
-import { COLORING_EXAMPLES, type ColoringExample, exampleGraph } from '@/lib/examples/coloring-examples';
+import { COLORING_EXAMPLES, type ColoringExample } from '@/lib/examples/coloring-examples';
+import { coloringExampleDoc, precedenceExampleDoc } from '@/lib/examples/example-docs';
 import { PRECEDENCE_EXAMPLES, type PrecedenceExample } from '@/lib/examples/precedence-examples';
 import { countsLabel, plural, sentences } from '@/lib/format';
-import { WORLD_BOX } from '@/lib/geometry';
-import type { Graph, Positions } from '@/lib/graph/types';
-import { layeredLayout } from '@/lib/layout/layered';
-import { autoLayout, fromNormalized } from '@/lib/layout/layouts';
 import { analyzePrecedence } from '@/lib/precedence/analyze';
-import { graphFromActivities } from '@/lib/precedence/model';
-import type { ActivityInfo } from '@/lib/precedence/types';
-import { useColoringEditor, usePrecedenceEditor } from '@/state/editor-context';
-import { useStageBridge } from '@/state/stage-bridge';
+import type { EditorDoc, Notice } from '@/state/editor-reducer';
+import { newSavedId, type SavedGraph } from '@/state/saved-graphs';
+import { useSavedGraphs } from '@/state/saved-graphs-context';
 
 const THUMBNAIL_SIZE = 64;
 
 interface ExampleCard {
   example: ColoringExample;
-  graph: Graph;
-  positions: Positions;
+  doc: EditorDoc;
 }
 
 interface PrecedenceCard {
   example: PrecedenceExample;
-  graph: Graph;
-  positions: Positions;
-  activities: Record<string, ActivityInfo>;
+  doc: EditorDoc;
   stageCount: number;
 }
 
 function buildCards(): ExampleCard[] {
-  return COLORING_EXAMPLES.map((example) => {
-    const graph = exampleGraph(example);
-    const positions = example.layout ? fromNormalized(example.layout, WORLD_BOX) : autoLayout(graph, WORLD_BOX);
-    return { example, graph, positions };
-  });
+  return COLORING_EXAMPLES.map((example) => ({ example, doc: coloringExampleDoc(example) }));
 }
 
 function buildPrecedenceCards(): PrecedenceCard[] {
   return PRECEDENCE_EXAMPLES.map((example) => {
-    const { graph, info } = graphFromActivities(example.activities);
-    const analysis = analyzePrecedence(graph, info);
-    if (!analysis.valid) throw new Error(`Ejemplo de precedencias inválido "${example.id}"`);
-    const positions = layeredLayout(graph, analysis.stages.stageOf, WORLD_BOX);
-    return { example, graph, positions, activities: info, stageCount: analysis.stages.stages.length };
+    const doc = precedenceExampleDoc(example);
+    const analysis = analyzePrecedence(doc.graph, doc.activities ?? {});
+    return { example, doc, stageCount: analysis.valid ? analysis.stages.stages.length : 0 };
   });
 }
 
 export default function GraphsScreen() {
   const theme = useTheme();
-  const { dispatch } = useColoringEditor();
-  const precedence = usePrecedenceEditor();
-  const { dismissBridge } = useStageBridge();
+  const { open } = useModuleLoader();
+  const saved = useSavedGraphs();
+  const [menuFor, setMenuFor] = useState<SavedGraph | null>(null);
+  const [renaming, setRenaming] = useState<SavedGraph | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const cards = buildCards();
   const precedenceCards = buildPrecedenceCards();
+  const now = new Date();
 
-  const load = ({ example, graph, positions }: ExampleCard) => {
-    // El ejemplo de la tarea tiene el mismo grafo que el puente de etapas: sin esto se vería pintado por etapas.
-    dismissBridge();
-    dispatch({ type: 'replaceDoc', doc: { graph, positions }, message: `Se cargó «${example.name}».` });
-    router.navigate('/');
+  const duplicate = (item: SavedGraph) => {
+    setMenuFor(null);
+    saved.dispatch({ type: 'duplicate', id: item.id, newId: newSavedId(), now: new Date().toISOString() });
   };
-  const loadPrecedence = ({ example, graph, positions, activities }: PrecedenceCard) => {
-    precedence.dispatch({
-      type: 'replaceDoc',
-      doc: { graph, positions, activities, unit: example.unit },
-      message: `Se cargó «${example.name}».`,
-    });
-    router.navigate('/precedence');
+  const remove = (item: SavedGraph) => {
+    setMenuFor(null);
+    saved.dispatch({ type: 'remove', id: item.id });
+    setNotice({ kind: 'info', message: `Se borró «${item.name}».`, undoable: true });
+  };
+  const undoRemove = () => {
+    saved.dispatch({ type: 'undoRemove' });
+    setNotice(null);
+  };
+  const rename = (name: string) => {
+    if (renaming) saved.dispatch({ type: 'rename', id: renaming.id, name });
+    setRenaming(null);
   };
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.title, { color: theme.text }]}>Mis grafos</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Toca un ejemplo para abrirlo.</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Toca un grafo para abrirlo.</Text>
+
+        <Text style={[styles.section, { color: theme.textSecondary }]}>Guardados</Text>
+        {saved.items.length === 0 ? (
+          <Text style={[styles.description, { color: theme.textSecondary }]}>
+            Todavía no guardaste grafos. Usa «Guardar» en Colorear o Precedencias.
+          </Text>
+        ) : (
+          saved.items.map((item) => (
+            <SavedGraphCard
+              key={item.id}
+              item={item}
+              now={now}
+              onOpen={() => open(item.module, item.doc, `Se abrió «${item.name}».`)}
+              onMore={() => setMenuFor(item)}
+            />
+          ))
+        )}
 
         <Text style={[styles.section, { color: theme.textSecondary }]}>Ejemplos de coloración</Text>
         {cards.map((card) => {
-          const { example, graph } = card;
+          const { example, doc } = card;
+          const { graph } = doc;
           const counts = countsLabel(graph.vertices.length, graph.edges.length);
           return (
             <Pressable
               key={example.id}
-              onPress={() => load(card)}
+              onPress={() => open('coloring', doc, `Se cargó «${example.name}».`)}
               accessibilityRole="button"
               accessibilityLabel={sentences(
                 example.name,
@@ -101,7 +116,7 @@ export default function GraphsScreen() {
                 { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement },
               ]}>
               <View style={[styles.thumbnail, { backgroundColor: theme.canvas }]}>
-                <GraphThumbnail graph={graph} positions={card.positions} size={THUMBNAIL_SIZE} />
+                <GraphThumbnail graph={graph} positions={doc.positions} size={THUMBNAIL_SIZE} />
               </View>
               <View style={styles.info}>
                 <View style={styles.nameRow}>
@@ -123,13 +138,14 @@ export default function GraphsScreen() {
 
         <Text style={[styles.section, { color: theme.textSecondary }]}>Ejemplos de precedencias</Text>
         {precedenceCards.map((card) => {
-          const { example, graph, stageCount } = card;
+          const { example, doc, stageCount } = card;
+          const { graph } = doc;
           const counts = `${plural(graph.vertices.length, 'actividad', 'actividades')} · ${plural(graph.edges.length, 'precedencia', 'precedencias')}`;
           const stages = plural(stageCount, 'etapa', 'etapas');
           return (
             <Pressable
               key={example.id}
-              onPress={() => loadPrecedence(card)}
+              onPress={() => open('precedence', doc, `Se cargó «${example.name}».`)}
               accessibilityRole="button"
               accessibilityLabel={sentences(example.name, example.description, counts, stages)}
               style={({ pressed }) => [
@@ -137,7 +153,7 @@ export default function GraphsScreen() {
                 { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement },
               ]}>
               <View style={[styles.thumbnail, { backgroundColor: theme.canvas }]}>
-                <GraphThumbnail graph={graph} positions={card.positions} size={THUMBNAIL_SIZE} />
+                <GraphThumbnail graph={graph} positions={doc.positions} size={THUMBNAIL_SIZE} />
               </View>
               <View style={styles.info}>
                 <View style={styles.nameRow}>
@@ -157,6 +173,26 @@ export default function GraphsScreen() {
           );
         })}
       </ScrollView>
+      <NoticeSnackbar notice={notice} onUndo={undoRemove} onDismiss={() => setNotice(null)} />
+
+      <SavedGraphMenu
+        item={menuFor}
+        onRename={() => {
+          setRenaming(menuFor);
+          setMenuFor(null);
+        }}
+        onDuplicate={() => menuFor && duplicate(menuFor)}
+        onRemove={() => menuFor && remove(menuFor)}
+        onClose={() => setMenuFor(null)}
+      />
+      <NameDialog
+        visible={renaming !== null}
+        title="Renombrar"
+        initial={renaming?.name ?? ''}
+        confirmLabel="Renombrar"
+        onSubmit={rename}
+        onCancel={() => setRenaming(null)}
+      />
     </SafeAreaView>
   );
 }

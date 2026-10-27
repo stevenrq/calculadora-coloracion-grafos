@@ -53,7 +53,9 @@ export type EditorAction =
   | { type: 'clear' }
   | { type: 'undo' }
   | { type: 'redo' }
-  | { type: 'dismissNotice' };
+  | { type: 'dismissNotice' }
+  /** Aviso informativo que no cambia el doc ni el historial (p. ej. "Se guardó…"). */
+  | { type: 'notify'; message: string };
 
 export const HISTORY_LIMIT = 100;
 
@@ -222,5 +224,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
     case 'dismissNotice':
       return { ...state, notice: null };
+
+    case 'notify':
+      return { ...state, notice: { kind: 'info', message: action.message } };
   }
 }

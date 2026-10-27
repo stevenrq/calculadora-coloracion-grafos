@@ -48,6 +48,9 @@ export function EditorToolbar(props: {
   /** Sin él no se muestra "Reorganizar" (p. ej. en la vista Tabla). */
   onRelayout?(): void;
   onClear(): void;
+  /** Sin él no se muestra "Guardar". */
+  onSave?(): void;
+  saveDisabled?: boolean;
   /** Acción principal del módulo: Colorear, Analizar… */
   primary: { icon: IconName; label: string; accessibilityLabel: string; onPress(): void; disabled?: boolean };
 }) {
@@ -77,6 +80,15 @@ export function EditorToolbar(props: {
         />
       )}
       <ToolButton icon="delete-sweep" label="Limpiar" accessibilityLabel="Limpiar el grafo" onPress={props.onClear} />
+      {props.onSave && (
+        <ToolButton
+          icon="save"
+          label="Guardar"
+          accessibilityLabel="Guardar el grafo en Mis grafos"
+          onPress={props.onSave}
+          disabled={props.saveDisabled}
+        />
+      )}
       <ToolButton {...props.primary} primary />
     </View>
   );

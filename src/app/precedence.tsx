@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdjacencyMatrixView } from '@/components/adjacency-matrix';
 import { EditorToolbar } from '@/components/editor-toolbar';
 import { GraphCanvas } from '@/components/graph-canvas/graph-canvas';
+import { NameDialog } from '@/components/name-dialog';
 import { NoticeSnackbar } from '@/components/notice-snackbar';
 import { ActivityDialog, type ActivityInput } from '@/components/precedence/activity-dialog';
 import { ActivityTable } from '@/components/precedence/activity-table';
@@ -27,6 +28,8 @@ import { stageBridge } from '@/lib/precedence/bridge';
 import { DEFAULT_UNIT } from '@/lib/precedence/types';
 import { useColoringEditor, usePrecedenceEditor } from '@/state/editor-context';
 import { stageLayout } from '@/state/precedence-reducer';
+import { newSavedId, uniqueName } from '@/state/saved-graphs';
+import { useSavedGraphs } from '@/state/saved-graphs-context';
 import { useStageBridge } from '@/state/stage-bridge';
 
 const FIT_PADDING = 24;
@@ -54,6 +57,8 @@ export default function PrecedenceScreen() {
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [fittedKey, setFittedKey] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const [naming, setNaming] = useState(false);
+  const saved = useSavedGraphs();
   const [editing, setEditing] = useState<Editing>(null);
   const view = usePrecedenceView(doc);
   const { analysis } = view;
@@ -90,6 +95,12 @@ export default function PrecedenceScreen() {
     dispatch({ type: 'renameSelected', to });
     setRenaming(false);
   };
+  const saveGraph = (name: string) => {
+    const unique = uniqueName(name, saved.items);
+    saved.dispatch({ type: 'save', name: unique, module: 'precedence', doc, id: newSavedId(), now: new Date().toISOString() });
+    dispatch({ type: 'notify', message: `Se guardó «${unique}» en Mis grafos.` });
+    setNaming(false);
+  };
   const openBridge = () => {
     if (!analysis.valid) return;
     const { graph, bridge } = stageBridge(doc.graph, analysis.stages, analysis.activities);
@@ -116,6 +127,8 @@ export default function PrecedenceScreen() {
           : undefined
       }
       onClear={() => dispatch({ type: 'clear' })}
+      onSave={() => setNaming(true)}
+      saveDisabled={activityCount === 0}
       primary={{
         icon: 'account-tree',
         label: 'Analizar',
@@ -225,6 +238,14 @@ export default function PrecedenceScreen() {
         onSubmit={submitRename}
         onCancel={() => setRenaming(false)}
         texts={CODE_TEXTS}
+      />
+      <NameDialog
+        visible={naming}
+        title="Guardar en Mis grafos"
+        initial="Proyecto de precedencias"
+        confirmLabel="Guardar"
+        onSubmit={saveGraph}
+        onCancel={() => setNaming(false)}
       />
     </SafeAreaView>
   );

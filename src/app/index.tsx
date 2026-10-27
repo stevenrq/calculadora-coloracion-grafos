@@ -8,6 +8,7 @@ import { AdjacencyMatrixView } from '@/components/adjacency-matrix';
 import { EditorToolbar } from '@/components/editor-toolbar';
 import { GraphCanvas } from '@/components/graph-canvas/graph-canvas';
 import { GraphTextEditor } from '@/components/graph-text-editor';
+import { NameDialog } from '@/components/name-dialog';
 import { NoticeSnackbar } from '@/components/notice-snackbar';
 import { PracticeBar } from '@/components/practice-bar';
 import { RenameDialog } from '@/components/rename-dialog';
@@ -31,6 +32,8 @@ import { autoLayout, fitViewport, mergePositions } from '@/lib/layout/layouts';
 import { activeBridge, type StageBridge } from '@/lib/precedence/bridge';
 import { useColoringEditor } from '@/state/editor-context';
 import type { Notice } from '@/state/editor-reducer';
+import { newSavedId, uniqueName } from '@/state/saved-graphs';
+import { useSavedGraphs } from '@/state/saved-graphs-context';
 import { useStageBridge } from '@/state/stage-bridge';
 
 const FIT_PADDING = 24;
@@ -51,6 +54,8 @@ export default function ColorScreen() {
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [fittedKey, setFittedKey] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const [naming, setNaming] = useState(false);
+  const saved = useSavedGraphs();
   const [mode, setMode] = useState<Mode>('draw');
   const results = useResultsView(doc.graph, mode === 'draw');
   const { bridge } = useStageBridge();
@@ -133,6 +138,12 @@ export default function ColorScreen() {
     dispatch({ type: 'renameSelected', to });
     setRenaming(false);
   };
+  const saveGraph = (name: string) => {
+    const unique = uniqueName(name, saved.items);
+    saved.dispatch({ type: 'save', name: unique, module: 'coloring', doc, id: newSavedId(), now: new Date().toISOString() });
+    dispatch({ type: 'notify', message: `Se guardó «${unique}» en Mis grafos.` });
+    setNaming(false);
+  };
   const applyText = (graph: Graph) => {
     dispatch({
       type: 'replaceDoc',
@@ -156,6 +167,8 @@ export default function ColorScreen() {
       onRedo={() => dispatch({ type: 'redo' })}
       onRelayout={mode === 'draw' ? relayout : undefined}
       onClear={() => dispatch({ type: 'clear' })}
+      onSave={() => setNaming(true)}
+      saveDisabled={vertexCount === 0}
       primary={{
         icon: 'palette',
         label: 'Colorear',
@@ -163,6 +176,17 @@ export default function ColorScreen() {
         onPress: colorGraph,
         disabled: vertexCount === 0,
       }}
+    />
+  );
+
+  const nameDialog = (
+    <NameDialog
+      visible={naming}
+      title="Guardar en Mis grafos"
+      initial="Grafo de coloración"
+      confirmLabel="Guardar"
+      onSubmit={saveGraph}
+      onCancel={() => setNaming(false)}
     />
   );
 
@@ -186,6 +210,7 @@ export default function ColorScreen() {
           {snackbar}
         </View>
         {toolbar}
+        {nameDialog}
       </SafeAreaView>
     );
   }
@@ -323,6 +348,7 @@ export default function ColorScreen() {
         onSubmit={submitRename}
         onCancel={() => setRenaming(false)}
       />
+      {nameDialog}
     </SafeAreaView>
   );
 }
