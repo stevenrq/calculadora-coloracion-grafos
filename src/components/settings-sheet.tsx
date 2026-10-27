@@ -8,7 +8,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PLAYBACK_SPEEDS, speedLabel } from '@/lib/coloring/replay';
 import type { ThemePreference } from '@/state/settings';
-import { useSettings } from '@/state/settings-context';
+import { useSettings, useSettingsOpen } from '@/state/settings-context';
 
 const THEME_OPTIONS = [
   { value: 'system', label: 'Sistema' },
@@ -22,7 +22,8 @@ const SPEED_OPTIONS = PLAYBACK_SPEEDS.map((speed) => ({ value: String(speed), la
 export function SettingsSheet() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { settings, update, open, setOpen } = useSettings();
+  const { settings, update } = useSettings();
+  const { open, setOpen } = useSettingsOpen();
   const close = () => setOpen(false);
 
   const changeSpeed = (value: string) => {

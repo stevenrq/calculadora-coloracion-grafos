@@ -2,12 +2,12 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
-import { useSettings } from '@/state/settings-context';
+import { useSettingsOpen } from '@/state/settings-context';
 
 /** Ícono de Ajustes para el extremo derecho de la cabecera de cada pestaña. */
 export function SettingsButton() {
   const theme = useTheme();
-  const { setOpen } = useSettings();
+  const { setOpen } = useSettingsOpen();
   return (
     <Pressable
       onPress={() => setOpen(true)}

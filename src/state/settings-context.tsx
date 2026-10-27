@@ -9,12 +9,17 @@ const SETTINGS_KEY = 'settings:v1';
 interface SettingsValue {
   settings: Settings;
   update(patch: Partial<Settings>): void;
+}
+
+interface SettingsOpenValue {
   /** La pantalla de Ajustes está abierta. */
   open: boolean;
   setOpen(open: boolean): void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
+// Aparte de los ajustes: abrir o cerrar la pantalla no debe volver a dibujar todo lo que lee la velocidad o la vibración.
+const SettingsOpenContext = createContext<SettingsOpenValue | null>(null);
 
 function initialSettings(): Settings {
   let settings = DEFAULT_SETTINGS;
@@ -52,11 +57,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const update = (patch: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...patch }));
 
-  return <SettingsContext value={{ settings, update, open, setOpen }}>{children}</SettingsContext>;
+  return (
+    <SettingsContext value={{ settings, update }}>
+      <SettingsOpenContext value={{ open, setOpen }}>{children}</SettingsOpenContext>
+    </SettingsContext>
+  );
 }
 
 export function useSettings(): SettingsValue {
   const value = use(SettingsContext);
   if (!value) throw new Error('useSettings debe usarse dentro de <SettingsProvider>');
+  return value;
+}
+
+export function useSettingsOpen(): SettingsOpenValue {
+  const value = use(SettingsOpenContext);
+  if (!value) throw new Error('useSettingsOpen debe usarse dentro de <SettingsProvider>');
   return value;
 }
