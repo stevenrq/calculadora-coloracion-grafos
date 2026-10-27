@@ -34,6 +34,15 @@ describe('compareRows', () => {
     });
   });
 
+  it('si el exacto omitió pasos, la fila lo dice: el conteo es solo de los que se grabaron', () => {
+    const truncated = { ...exact, result: { ...exact.result, stepsTruncated: true } };
+    const r = byId(compareRows(heuristics, truncated));
+    expect(r.exact.stepsTruncated).toBe(true);
+    expect(r.auto.stepsTruncated).toBe(true);
+    expect(r.dsatur.stepsTruncated).toBe(false);
+    expect(byId(compareRows(heuristics, exact)).exact.stepsTruncated).toBe(false);
+  });
+
   it('si se agotó el tiempo, el exacto da la cota y no un número de colores', () => {
     const timeout = { status: 'timeout' as const, lower: 3, upper: 4, result: heuristics.dsatur };
     const r = byId(compareRows(heuristics, timeout));

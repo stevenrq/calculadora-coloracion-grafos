@@ -59,11 +59,13 @@ export function CompareCard({
 function Row({ row, active, onApply }: { row: CompareRow; active: boolean; onApply(id: AlgorithmId): void }) {
   const theme = useTheme();
   const colors = row.colorsUsed === null ? '—' : String(row.colorsUsed);
-  const steps = row.steps === null ? '—' : String(row.steps);
+  // "400+": el exacto omitió pasos intermedios y solo se cuentan los grabados.
+  const steps = row.steps === null ? '—' : `${row.steps}${row.stepsTruncated ? '+' : ''}`;
+  const stepsSummary = row.stepsTruncated ? `más de ${row.steps} pasos` : plural(row.steps ?? 0, 'paso', 'pasos');
   const summary =
     row.colorsUsed === null
       ? row.note ?? row.time
-      : `${plural(row.colorsUsed, 'color', 'colores')}, ${plural(row.steps ?? 0, 'paso', 'pasos')}, ${row.time}${row.note ? `, ${row.note}` : ''}`;
+      : `${plural(row.colorsUsed, 'color', 'colores')}, ${stepsSummary}, ${row.time}${row.note ? `, ${row.note}` : ''}`;
   return (
     <Pressable
       onPress={() => onApply(row.id)}

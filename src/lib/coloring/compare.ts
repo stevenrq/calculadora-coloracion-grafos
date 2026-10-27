@@ -8,6 +8,8 @@ export interface CompareRow {
   /** `null` mientras el exacto corre o si no terminó: no hay un número que comparar. */
   colorsUsed: number | null;
   steps: number | null;
+  /** El exacto graba un número limitado de pasos: `steps` cuenta solo los grabados, y hubo más. */
+  stepsTruncated: boolean;
   time: string;
   note?: string;
   /** Tocar la fila aplica esa coloración; el exacto sin terminar no tiene una propia. */
@@ -24,6 +26,7 @@ export function formatElapsed(ms: number): string {
 const numbers = (r: ColoringResult) => ({
   colorsUsed: r.colorsUsed,
   steps: r.steps.length,
+  stepsTruncated: r.stepsTruncated,
   time: formatElapsed(r.elapsedMs),
 });
 
@@ -45,7 +48,15 @@ export function compareRows(heuristics: Record<HeuristicId, ColoringResult>, chr
   } else if (chromatic.status === 'running') {
     const note = 'usa DSATUR mientras tanto';
     auto = { id: 'auto', label: 'Auto', ...numbers(heuristics.dsatur), note, applicable: true };
-    exact = { id: 'exact', label: exactLabel, colorsUsed: null, steps: null, time: 'Calculando…', applicable: false };
+    exact = {
+      id: 'exact',
+      label: exactLabel,
+      colorsUsed: null,
+      steps: null,
+      stepsTruncated: false,
+      time: 'Calculando…',
+      applicable: false,
+    };
   } else {
     const reason = chromatic.status === 'timeout' ? 'se agotó el tiempo' : 'se canceló';
     auto = { id: 'auto', label: 'Auto', ...numbers(heuristics.dsatur), note: 'usó DSATUR', applicable: true };
@@ -54,6 +65,7 @@ export function compareRows(heuristics: Record<HeuristicId, ColoringResult>, chr
       label: exactLabel,
       colorsUsed: null,
       steps: null,
+      stepsTruncated: false,
       time: '—',
       note: `${reason}: χ ≤ ${chromatic.upper}`,
       applicable: false,
