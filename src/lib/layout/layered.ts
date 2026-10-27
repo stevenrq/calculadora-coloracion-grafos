@@ -54,7 +54,8 @@ export function layeredLayout(g: Graph, stageOf: Readonly<Record<VertexId, numbe
     nodes[to].up.push(previous);
   }
 
-  const layerCount = Math.max(...nodes.map((n) => n.layer)) + 1;
+  // Con reduce y no con Math.max(...): puede haber unos 20 000 nodos y Hermes no admite tantos argumentos.
+  const layerCount = nodes.reduce((max, n) => Math.max(max, n.layer), 0) + 1;
   const order = orderLayers(nodes, layerCount);
   const y = placeRows(nodes, order);
 

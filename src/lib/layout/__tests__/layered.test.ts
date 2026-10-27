@@ -93,6 +93,24 @@ describe('layeredLayout', () => {
     expectColumns(g, pos, stageOf);
   });
 
+  it('el peor caso (un camino de 60 y flechas largas: unos 20 000 puntos de paso) no pasa listas enormes como argumentos', () => {
+    const v = Array.from({ length: 60 }, (_, i) => `v${i}`);
+    const edges: Edge[] = v.slice(1).map((x, i) => [v[i], x]);
+    for (let d = 59; d >= 2 && edges.length < 600; d--)
+      for (let i = 0; i + d < 60 && edges.length < 600; i++) edges.push([v[i], v[i + d]]);
+    const g: Graph = { directed: true, vertices: v, edges };
+    const stageOf = stagesOf(g);
+    // Hermes, el motor de la app, se queda sin pila con decenas de miles de argumentos (Node los aguanta).
+    const max = jest.spyOn(Math, 'max');
+    const min = jest.spyOn(Math, 'min');
+    const pos = layeredLayout(g, stageOf, WORLD_BOX);
+    const biggest = Math.max(0, ...[...max.mock.calls, ...min.mock.calls].map((args) => args.length));
+    max.mockRestore();
+    min.mockRestore();
+    expect(biggest).toBeLessThanOrEqual(g.vertices.length);
+    expectColumns(g, pos, stageOf);
+  });
+
   it('es determinista', () => {
     const g = randomDag(30, 50, 9);
     const stageOf = stagesOf(g);
