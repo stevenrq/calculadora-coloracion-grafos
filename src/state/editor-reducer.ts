@@ -2,6 +2,7 @@ import {
   addEdge,
   addVertex,
   emptyGraph,
+  hasEdge,
   nextLabel,
   removeEdge,
   removeVertex,
@@ -41,6 +42,8 @@ export type EditorAction =
   | { type: 'tapEmpty'; point: Point }
   | { type: 'tapVertex'; id: VertexId }
   | { type: 'tapEdge'; edge: Edge }
+  /** Vista Matriz: agrega la arista a→b si falta y la quita si ya está (en no dirigido, en cualquier sentido). */
+  | { type: 'toggleEdge'; a: VertexId; b: VertexId }
   | { type: 'dragStart' }
   | { type: 'dragMove'; id: VertexId; point: Point }
   | { type: 'deleteSelection' }
@@ -118,6 +121,26 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
     case 'tapEdge':
       return { ...state, selection: { kind: 'edge', edge: action.edge } };
+
+    case 'toggleEdge': {
+      const { a, b } = action;
+      if (hasEdge(doc.graph, a, b)) {
+        // En no dirigido se nombra la arista como está guardada, no en el orden de la celda tocada.
+        const stored = doc.graph.edges.find((e) => e.includes(a) && e.includes(b)) ?? [a, b];
+        const [p, q] = doc.graph.directed ? [a, b] : stored;
+        const message = doc.graph.directed
+          ? `Se quitó ${p} de las predecesoras de ${q}.`
+          : `Se quitó la arista ${p}–${q}.`;
+        return commit(
+          state,
+          { ...doc, graph: removeEdge(doc.graph, a, b) },
+          { selection: NO_SELECTION, notice: undoableNotice(message) },
+        );
+      }
+      const r = addEdge(doc.graph, a, b);
+      if (!r.ok) return { ...state, notice: errorNotice(r.error) };
+      return commit(state, { ...doc, graph: r.graph }, { selection: NO_SELECTION });
+    }
 
     case 'dragStart':
       return { ...state, past: pushPast(state), future: [] };

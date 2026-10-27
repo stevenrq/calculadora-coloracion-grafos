@@ -1,4 +1,5 @@
 import { findPrecedenceExample } from '@/lib/examples/precedence-examples';
+import { analyzePrecedence } from '@/lib/precedence/analyze';
 import { graphFromActivities } from '@/lib/precedence/model';
 import { type EditorState, initialEditorState } from '../editor-reducer';
 import { emptyPrecedenceDoc, type PrecedenceAction, precedenceReducer, stageLayout } from '../precedence-reducer';
@@ -123,5 +124,25 @@ describe('stageLayout', () => {
     const pos = stageLayout({ ...graph, edges: [...graph.edges] }, { A: { x: 1, y: 2 } });
     expect(pos.A).toEqual({ x: 1, y: 2 });
     expect(Object.keys(pos).sort()).toEqual(['A', 'B', 'C']);
+  });
+});
+
+describe('toggleEdge en precedencias (vista Matriz)', () => {
+  it('B → A con A → B ya puesta cierra un ciclo, conserva las actividades y la validación lo marca', () => {
+    const s = run(fresh(), save('A'), save('B', ['A']));
+    const next = run(s, { type: 'toggleEdge', a: 'B', b: 'A' });
+    expect(next.doc.graph.edges).toEqual([
+      ['A', 'B'],
+      ['B', 'A'],
+    ]);
+    expect(next.doc.activities).toEqual(s.doc.activities);
+    expect(analyzePrecedence(next.doc.graph, next.doc.activities).valid).toBe(false);
+  });
+
+  it('quitar una flecha lo dice en términos de predecesoras', () => {
+    const s = run(fresh(), save('A'), save('B', ['A']));
+    const next = run(s, { type: 'toggleEdge', a: 'A', b: 'B' });
+    expect(next.doc.graph.edges).toEqual([]);
+    expect(next.notice?.message).toBe('Se quitó A de las predecesoras de B.');
   });
 });

@@ -113,3 +113,40 @@ it('en coloración, renombrar y borrar no crean datos de actividades', () => {
   const deleted = run(renamed, { type: 'tapVertex', id: 'X' }, { type: 'deleteSelection' });
   expect('activities' in deleted.doc).toBe(false);
 });
+
+describe('toggleEdge (vista Matriz)', () => {
+  it('agrega la arista que falta y la quita en cualquier sentido, un paso de deshacer cada vez', () => {
+    const added = run(abc(), { type: 'toggleEdge', a: 'A', b: 'B' });
+    expect(added.doc.graph.edges).toEqual([['A', 'B']]);
+    expect(added.past).toHaveLength(4);
+    expect(added.notice).toBeNull();
+
+    const removed = run(added, { type: 'toggleEdge', a: 'B', b: 'A' });
+    expect(removed.doc.graph.edges).toEqual([]);
+    expect(removed.past).toHaveLength(5);
+    expect(removed.notice).toEqual({ kind: 'info', message: 'Se quitó la arista A–B.', undoable: true });
+
+    expect(run(removed, { type: 'undo' }).doc.graph.edges).toEqual([['A', 'B']]);
+  });
+
+  it('la diagonal no crea lazos y avisa', () => {
+    const s = abc();
+    const next = run(s, { type: 'toggleEdge', a: 'A', b: 'A' });
+    expect(next.doc).toBe(s.doc);
+    expect(next.notice?.message).toBe('No se permiten lazos (una arista de un vértice a sí mismo).');
+  });
+
+  it('respeta el máximo de 600 aristas', () => {
+    let g = emptyGraph();
+    const labels = Array.from({ length: 36 }, (_, i) => `v${i}`);
+    for (const label of labels) {
+      const r = addVertex(g, label);
+      if (r.ok) g = r.graph;
+    }
+    const edges = labels.flatMap((a, i) => labels.slice(i + 1).map((b) => [a, b] as const)).slice(0, 600);
+    const full = initialEditorState({ graph: { ...g, edges }, positions: {} });
+    const next = run(full, { type: 'toggleEdge', a: 'v34', b: 'v35' });
+    expect(next.doc.graph.edges).toHaveLength(600);
+    expect(next.notice?.message).toBe('Llegaste al máximo de 600 aristas.');
+  });
+});
