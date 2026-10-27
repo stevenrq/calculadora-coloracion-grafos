@@ -5,13 +5,27 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Selection } from '@/state/editor-reducer';
 
-export function SelectionBar({ selection, onRename, onDelete }: { selection: Selection; onRename(): void; onDelete(): void }) {
+export function SelectionBar({
+  selection,
+  onRename,
+  onDelete,
+  directed = false,
+}: {
+  selection: Selection;
+  onRename(): void;
+  onDelete(): void;
+  /** En Precedencias los vértices son actividades y las aristas, flechas. */
+  directed?: boolean;
+}) {
   const theme = useTheme();
   if (selection.kind === 'none') return null;
 
   const isVertex = selection.kind === 'vertex';
-  const name = isVertex ? selection.id : `${selection.edge[0]}–${selection.edge[1]}`;
-  const title = isVertex ? `Vértice ${name}` : `Arista ${name}`;
+  const name = isVertex
+    ? selection.id
+    : `${selection.edge[0]}${directed ? ' → ' : '–'}${selection.edge[1]}`;
+  const noun = isVertex ? (directed ? 'actividad' : 'vértice') : directed ? 'flecha' : 'arista';
+  const title = `${noun[0].toUpperCase()}${noun.slice(1)} ${name}`;
 
   return (
     <View style={[styles.bar, { backgroundColor: theme.backgroundElement, borderTopColor: theme.border }]}>
@@ -21,7 +35,7 @@ export function SelectionBar({ selection, onRename, onDelete }: { selection: Sel
         </Text>
         {isVertex && (
           <Text style={[styles.hint, { color: theme.textSecondary }]} numberOfLines={1}>
-            Toca otro vértice para unirlos
+            {directed ? 'Toca la actividad que depende de esta' : 'Toca otro vértice para unirlos'}
           </Text>
         )}
       </View>
@@ -29,7 +43,7 @@ export function SelectionBar({ selection, onRename, onDelete }: { selection: Sel
         <Pressable
           onPress={onRename}
           accessibilityRole="button"
-          accessibilityLabel={`Renombrar el vértice ${selection.id}`}
+          accessibilityLabel={directed ? `Cambiar el código de la actividad ${selection.id}` : `Renombrar el vértice ${selection.id}`}
           style={({ pressed }) => [styles.action, pressed && { backgroundColor: theme.backgroundSelected }]}>
           <MaterialIcons name="edit" size={20} color={theme.text} />
           <Text style={[styles.actionLabel, { color: theme.text }]}>Renombrar</Text>
@@ -38,7 +52,7 @@ export function SelectionBar({ selection, onRename, onDelete }: { selection: Sel
       <Pressable
         onPress={onDelete}
         accessibilityRole="button"
-        accessibilityLabel={isVertex ? `Borrar el vértice ${name}` : `Borrar la arista ${name}`}
+        accessibilityLabel={`Borrar ${noun === 'vértice' ? 'el' : 'la'} ${noun} ${name}`}
         style={({ pressed }) => [styles.action, pressed && { backgroundColor: theme.backgroundSelected }]}>
         <MaterialIcons name="delete-outline" size={20} color={theme.danger} />
         <Text style={[styles.actionLabel, { color: theme.danger }]}>Borrar</Text>

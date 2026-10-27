@@ -1,10 +1,12 @@
 import {
+  changeStep,
   formatDuration,
   formatNumber,
   issueHighlight,
   parseDuration,
   pathLabel,
   stageColoringAtStep,
+  toggleTarget,
 } from '../present';
 import { computeStages } from '../stages';
 import { HOMEWORK } from '../__fixtures__/activities';
@@ -59,5 +61,24 @@ describe('formato', () => {
 
   it('pathLabel', () => {
     expect(pathLabel(['A', 'B'])).toBe('A → B');
+  });
+});
+
+describe('selección de resultados', () => {
+  it('activar un resaltado lleva el reproductor al final; repetirlo lo apaga', () => {
+    const on = toggleTarget({ target: null, step: { key: 'k', index: 2 } }, { kind: 'critical' });
+    expect(on).toEqual({ target: { kind: 'critical' }, step: null });
+    expect(toggleTarget(on, { kind: 'critical' }).target).toBeNull();
+  });
+
+  it('cambiar de etapa resaltada reemplaza la anterior', () => {
+    const s = toggleTarget({ target: { kind: 'stage', stage: 1 }, step: null }, { kind: 'stage', stage: 2 });
+    expect(s.target).toEqual({ kind: 'stage', stage: 2 });
+  });
+
+  it('moverse antes del final apaga el resaltado; en el final lo conserva', () => {
+    const s = { target: { kind: 'stage', stage: 2 } as const, step: null };
+    expect(changeStep(s, { key: 'k', index: 1 }, 8)).toEqual({ target: null, step: { key: 'k', index: 1 } });
+    expect(changeStep(s, { key: 'k', index: 8 }, 8).target).toEqual({ kind: 'stage', stage: 2 });
   });
 });

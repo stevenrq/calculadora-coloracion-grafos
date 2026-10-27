@@ -17,6 +17,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon md="palette" />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="precedence">
+        <NativeTabs.Trigger.Label>Precedencias</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon md="account_tree" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="graphs">
         <NativeTabs.Trigger.Label>Mis grafos</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon md="folder_open" />

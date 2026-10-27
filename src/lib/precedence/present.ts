@@ -61,3 +61,29 @@ export function parseDuration(text: string): number | null | 'invalid' {
 export function pathLabel(path: readonly VertexId[]): string {
   return path.join(' → ');
 }
+
+/** Lo elegido en los resultados: el resaltado activo y el paso del reproductor (para la clave de un grafo). */
+export interface PrecedenceSelection {
+  target: PrecedenceTarget;
+  /** `null` o una `key` vieja equivalen al paso final. */
+  step: { key: string; index: number } | null;
+}
+
+function sameTarget(a: PrecedenceTarget, b: PrecedenceTarget): boolean {
+  if (!a || !b || a.kind !== b.kind) return false;
+  return a.kind === 'critical' || (b.kind === 'stage' && a.stage === b.stage);
+}
+
+/** Tocar un resaltado lo alterna; al activarlo, el reproductor salta al final para que el lienzo lo muestre. */
+export function toggleTarget(s: PrecedenceSelection, target: NonNullable<PrecedenceTarget>): PrecedenceSelection {
+  return sameTarget(s.target, target) ? { ...s, target: null } : { target, step: null };
+}
+
+/** Moverse antes del final apaga el resaltado: el lienzo pasa a mostrar el paso. */
+export function changeStep(
+  s: PrecedenceSelection,
+  step: { key: string; index: number },
+  lastStep: number,
+): PrecedenceSelection {
+  return { target: step.index < lastStep ? null : s.target, step };
+}

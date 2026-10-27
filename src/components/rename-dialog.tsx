@@ -6,26 +6,45 @@ import { useTheme } from '@/hooks/use-theme';
 import { isValidLabel } from '@/lib/graph/graph';
 import { LIMITS } from '@/lib/graph/types';
 
+interface RenameTexts {
+  title: string;
+  inputLabel: string;
+}
+
+const VERTEX_TEXTS: RenameTexts = { title: 'Renombrar vértice', inputLabel: 'Nuevo nombre del vértice' };
+
 export function RenameDialog({
   visible,
   initial,
   onSubmit,
   onCancel,
+  texts = VERTEX_TEXTS,
 }: {
   visible: boolean;
   initial: string;
   onSubmit(to: string): void;
   onCancel(): void;
+  texts?: RenameTexts;
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} statusBarTranslucent>
       {/* Montar el formulario solo al abrir: así arranca siempre con la etiqueta actual. */}
-      {visible && <RenameForm initial={initial} onSubmit={onSubmit} onCancel={onCancel} />}
+      {visible && <RenameForm initial={initial} onSubmit={onSubmit} onCancel={onCancel} texts={texts} />}
     </Modal>
   );
 }
 
-function RenameForm({ initial, onSubmit, onCancel }: { initial: string; onSubmit(to: string): void; onCancel(): void }) {
+function RenameForm({
+  initial,
+  onSubmit,
+  onCancel,
+  texts,
+}: {
+  initial: string;
+  onSubmit(to: string): void;
+  onCancel(): void;
+  texts: RenameTexts;
+}) {
   const theme = useTheme();
   const [text, setText] = useState(initial);
   const trimmed = text.trim();
@@ -38,7 +57,7 @@ function RenameForm({ initial, onSubmit, onCancel }: { initial: string; onSubmit
   return (
     <View style={styles.backdrop}>
       <View style={[styles.card, { backgroundColor: theme.background }]}>
-        <Text style={[styles.title, { color: theme.text }]}>Renombrar vértice</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{texts.title}</Text>
         <TextInput
           value={text}
           onChangeText={setText}
@@ -49,7 +68,7 @@ function RenameForm({ initial, onSubmit, onCancel }: { initial: string; onSubmit
           autoCorrect={false}
           maxLength={LIMITS.maxLabelLength}
           returnKeyType="done"
-          accessibilityLabel="Nuevo nombre del vértice"
+          accessibilityLabel={texts.inputLabel}
           style={[styles.input, { color: theme.text, borderColor: valid ? theme.primary : theme.danger }]}
         />
         <Text style={[styles.help, { color: valid ? theme.textSecondary : theme.danger }]}>
