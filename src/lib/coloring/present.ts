@@ -3,6 +3,13 @@ import { ALGORITHM_SHORT_LABELS, type AlgorithmId, type ColoringResult } from '.
 
 export type ChromaticState = { status: 'running'; k: number | null } | ExactOutcome;
 
+export type KeyedChromatic = { key: string; state: ChromaticState } | null;
+
+/** Un χ ya demostrado para el mismo grafo no se degrada (p. ej. al reabrir la hoja y relanzar la búsqueda). */
+export function keepProven(prev: KeyedChromatic, next: { key: string; state: ChromaticState }): KeyedChromatic {
+  return prev?.key === next.key && prev.state.status === 'exact' ? prev : next;
+}
+
 /** Coloración que se pinta según el algoritmo elegido. Auto/Exacto usan DSATUR mientras la búsqueda corre. */
 export function selectDisplayedResult(
   algorithm: AlgorithmId,

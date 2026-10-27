@@ -2,7 +2,7 @@ import { exampleGraph, findExample } from '@/lib/examples/coloring-examples';
 import { dsaturColoring } from '../dsatur';
 import { exactColoringSync } from '../exact';
 import { greedyColoring } from '../greedy';
-import { chromaticLabel, colorsUsedWarning, selectDisplayedResult } from '../present';
+import { chromaticLabel, colorsUsedWarning, keepProven, selectDisplayedResult } from '../present';
 import { welshPowellColoring } from '../welsh-powell';
 
 const g = exampleGraph(findExample('w5'));
@@ -34,4 +34,22 @@ it('aviso cuando un algoritmo usa más colores que χ', () => {
   expect(colorsUsedWarning(wp, exact)).toBe('Welsh-Powell usó 5 colores; el mínimo es 4.');
   expect(colorsUsedWarning(h.dsatur, exact)).toBeNull();
   expect(colorsUsedWarning(wp, { status: 'running', k: 3 })).toBeNull();
+});
+
+describe('keepProven', () => {
+  const running = { status: 'running' as const, k: 3 };
+  const cancelled = { status: 'cancelled' as const, lower: 3, upper: 4, result: h.dsatur };
+
+  it('un χ demostrado del mismo grafo no se degrada', () => {
+    const prev = { key: 'g1', state: exact };
+    expect(keepProven(prev, { key: 'g1', state: running })).toBe(prev);
+    expect(keepProven(prev, { key: 'g1', state: cancelled })).toBe(prev);
+  });
+
+  it('otro grafo, o un estado previo sin demostrar, se reemplaza', () => {
+    const next = { key: 'g2', state: running };
+    expect(keepProven({ key: 'g1', state: exact }, next)).toBe(next);
+    expect(keepProven({ key: 'g2', state: cancelled }, next)).toBe(next);
+    expect(keepProven(null, next)).toBe(next);
+  });
 });
