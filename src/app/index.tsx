@@ -10,8 +10,10 @@ import { NoticeSnackbar } from '@/components/notice-snackbar';
 import { RenameDialog } from '@/components/rename-dialog';
 import { ResultsPanel } from '@/components/results/results-panel';
 import { ResultsSheet, SHEET_PEEK } from '@/components/results/results-sheet';
+import { type BridgePaint, StageBridgeCard } from '@/components/results/stage-bridge-card';
 import { SegmentedControl } from '@/components/segmented-control';
 import { SelectionBar } from '@/components/selection-bar';
+import { coloringColors } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
 import { useResultsView } from '@/hooks/use-results-view';
 import { useTheme } from '@/hooks/use-theme';
@@ -19,7 +21,9 @@ import { countsLabel } from '@/lib/format';
 import { IDENTITY_VIEWPORT, type Viewport, WORLD_BOX } from '@/lib/geometry';
 import type { Graph } from '@/lib/graph/types';
 import { autoLayout, fitViewport, mergePositions } from '@/lib/layout/layouts';
+import { activeBridge, type StageBridge } from '@/lib/precedence/bridge';
 import { useColoringEditor } from '@/state/editor-context';
+import { useStageBridge } from '@/state/stage-bridge';
 
 const FIT_PADDING = 24;
 const NO_SELECTION = { kind: 'none' } as const;
@@ -40,6 +44,23 @@ export default function ColorScreen() {
   const [renaming, setRenaming] = useState(false);
   const [mode, setMode] = useState<Mode>('draw');
   const results = useResultsView(doc.graph, mode === 'draw');
+  const { bridge } = useStageBridge();
+  const stageBridge = activeBridge(bridge, doc.graph);
+  const [seenBridge, setSeenBridge] = useState<StageBridge | null>(null);
+  const [paint, setPaint] = useState<BridgePaint>('stages');
+
+  // Al llegar desde "Ver etapas como coloración" se abren los resultados con la comparación (una vez por puente).
+  if (stageBridge && stageBridge !== seenBridge) {
+    setSeenBridge(stageBridge);
+    setPaint('stages');
+    setMode('draw');
+    results.openResults();
+  }
+  // Pintar por etapas, salvo mientras el reproductor recorre los pasos de otro algoritmo.
+  const stagePaint = stageBridge !== null && paint === 'stages' && !results.replaying;
+  const vertexColors = stagePaint ? coloringColors(stageBridge.coloring) : results.vertexColors;
+  // Una clase de color de la coloración mostrada no corresponde a la pintura por etapas.
+  const highlight = stagePaint && results.highlightTarget?.kind === 'class' ? undefined : results.highlight;
 
   // Encuadrar al conocer el tamaño del lienzo, cada vez que el reducer lo pide y al abrir/cerrar los resultados
   // (con la hoja abierta, solo en la parte de arriba que queda visible). Ajuste de estado durante el render.
@@ -116,8 +137,8 @@ export default function ColorScreen() {
             viewport={viewport}
             onViewportChange={setViewport}
             onLayout={setSize}
-            vertexColors={results.vertexColors}
-            highlight={results.highlight}
+            vertexColors={vertexColors}
+            highlight={highlight}
           />
           {vertexCount === 0 && (
             <View style={styles.empty}>
@@ -164,7 +185,21 @@ export default function ColorScreen() {
         />
 
         <ResultsSheet visible={results.open} onClose={results.closeResults}>
-          <ResultsPanel graph={doc.graph} view={results} />
+          <ResultsPanel
+            graph={doc.graph}
+            view={results}
+            header={
+              stageBridge &&
+              results.analysis && (
+                <StageBridgeCard
+                  bridge={stageBridge}
+                  chromatic={results.analysis.chromatic}
+                  paint={paint}
+                  onPaintChange={setPaint}
+                />
+              )
+            }
+          />
         </ResultsSheet>
       </View>
 

@@ -53,6 +53,7 @@ export function useResultsView(graph: Graph, active: boolean) {
     highlightTarget,
     resultKey,
     stepIndex,
+    replaying,
     vertexColors,
     highlight,
     openResults() {

@@ -31,4 +31,8 @@ describe('stageBridge: la tarea', () => {
     expect(activeBridge(bridge, edited.graph)).toBeNull();
     expect(activeBridge(null, graph)).toBeNull();
   });
+
+  it('el ejemplo no dirigido de la tarea tiene la misma clave: por eso Mis grafos descarta el puente al cargarlo', () => {
+    expect(activeBridge(bridge, exampleGraph(findExample('homework')))).toBe(bridge);
+  });
 });
