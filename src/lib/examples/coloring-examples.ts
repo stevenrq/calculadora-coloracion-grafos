@@ -158,7 +158,7 @@ export const COLORING_EXAMPLES: readonly ColoringExample[] = [
     name: 'Tarea: plataforma para construir una casa',
     description: 'El grafo de precedencia de 13 actividades, sin direcciones. Tiene un ciclo impar de 7: χ = 3.',
     format: 'edges',
-    text: 'A-B, B-C, B-D, C-E, C-F, D-I, E-G, E-H, G-J, H-J, I-J, F-K, J-K, J-L, K-M, L-M',
+    text: 'A-B, B-C, B-D, C-E, C-F, E-G, E-H, D-I, G-J, H-J, I-J, F-K, J-K, J-L, K-M, L-M',
     chromaticNumber: 3,
   },
 ];
