@@ -28,13 +28,26 @@ export type SavedAction =
   | { type: 'remove'; id: string }
   | { type: 'undoRemove' };
 
-/** `name`, o `name (2)`, `name (3)`… si otro elemento (distinto de `exceptId`) ya lo usa. */
-export function uniqueName(name: string, items: readonly Pick<SavedGraph, 'id' | 'name'>[], exceptId?: string): string {
+/** `base` seguido de `suffix`, recortando `base` (no el sufijo) para que el total no pase de `NAME_MAX`. */
+function fitName(base: string, suffix: string): string {
+  const room = NAME_MAX - suffix.length;
+  return (base.length > room ? base.slice(0, room).trimEnd() : base) + suffix;
+}
+
+/**
+ * `name + suffix`, o `name + suffix (2)`, `(3)`… si otro elemento (distinto de `exceptId`) ya lo usa. Nunca pasa de
+ * `NAME_MAX`: si no cabe, se recorta `name`, así el diálogo de renombrar puede mostrarlo entero.
+ */
+export function uniqueName(
+  name: string,
+  items: readonly Pick<SavedGraph, 'id' | 'name'>[],
+  exceptId?: string,
+  suffix = '',
+): string {
   const taken = new Set(items.filter((i) => i.id !== exceptId).map((i) => i.name));
-  if (!taken.has(name)) return name;
-  let n = 2;
-  while (taken.has(`${name} (${n})`)) n++;
-  return `${name} (${n})`;
+  let candidate = fitName(name, suffix);
+  for (let n = 2; taken.has(candidate); n++) candidate = fitName(name, `${suffix} (${n})`);
+  return candidate;
 }
 
 /** Nombre escrito por la persona sin espacios sobrantes, o `null` si queda vacío o pasa de `NAME_MAX`. */
@@ -65,7 +78,7 @@ export function savedReducer(state: SavedState, action: SavedAction): SavedState
       const copy: SavedGraph = {
         ...original,
         id: action.newId,
-        name: uniqueName(`${original.name} (copia)`, items),
+        name: uniqueName(original.name, items, undefined, ' (copia)'),
         savedAt: action.now,
       };
       return { ...state, items: [...items.slice(0, index + 1), copy, ...items.slice(index + 1)] };
@@ -118,7 +131,7 @@ export function deserializeSaved(text: string | null): SavedGraph[] {
     if (typeof entry !== 'object' || entry === null) continue;
     const { id, name, module, savedAt, doc } = entry as Record<string, unknown>;
     if (typeof id !== 'string' || id.length === 0 || ids.has(id)) continue;
-    // Sin tope de largo: las copias ("… (copia) (2)") pueden pasar de NAME_MAX y no deben perderse.
+    // Sin tope de largo: antes, las copias ("… (copia) (2)") podían pasar de NAME_MAX y no deben perderse.
     if (typeof name !== 'string' || name.trim().length === 0) continue;
     if (!MODULES.includes(module as DocKey)) continue;
     if (typeof savedAt !== 'string' || Number.isNaN(Date.parse(savedAt))) continue;

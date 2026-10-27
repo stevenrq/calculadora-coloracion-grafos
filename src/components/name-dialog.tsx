@@ -45,7 +45,8 @@ function NameForm({
   onCancel(): void;
 }) {
   const theme = useTheme();
-  const [text, setText] = useState(initial);
+  // El campo corta en NAME_MAX lo que se le da: el estado arranca igual, no con un texto más largo que no se ve.
+  const [text, setText] = useState(initial.slice(0, NAME_MAX));
   const name = cleanName(text);
   const valid = name !== null;
 

@@ -36,6 +36,15 @@ describe('uniqueName', () => {
   it('no choca con el propio elemento', () => {
     expect(uniqueName('Tarea', items, '1')).toBe('Tarea');
   });
+
+  it('nunca pasa de NAME_MAX: recorta el nombre, no el número', () => {
+    const long = 'x'.repeat(NAME_MAX);
+    const taken = [{ id: '1', name: long }] as SavedGraph[];
+    expect(uniqueName(long, taken)).toBe(`${'x'.repeat(NAME_MAX - 4)} (2)`);
+    expect(uniqueName('Tarea de grafos del martes y el jueves', taken, undefined, ' (copia)')).toBe(
+      'Tarea de grafos del martes y el (copia)',
+    );
+  });
 });
 
 describe('cleanName', () => {
@@ -67,6 +76,14 @@ describe('savedReducer', () => {
     expect(d.items[1]).toMatchObject({ id: 'c', doc: s.items[0].doc });
     const again = savedReducer(d, { type: 'duplicate', id: 'b', newId: 'e', now: NOW });
     expect(names(again)).toEqual(['Y', 'Y (copia) (2)', 'Y (copia)', 'X']);
+  });
+
+  it('duplicate de un nombre largo deja la copia dentro de NAME_MAX', () => {
+    const long = 'Proyecto final de Teoría de Grafos 2026';
+    let s = save(empty, long, 'a');
+    s = savedReducer(s, { type: 'duplicate', id: 'a', newId: 'b', now: NOW });
+    s = savedReducer(s, { type: 'duplicate', id: 'a', newId: 'c', now: NOW });
+    expect(names(s)).toEqual([long, 'Proyecto final de Teoría de (copia) (2)', 'Proyecto final de Teoría de Graf (copia)']);
   });
 
   it('remove + undoRemove restaura en el mismo índice', () => {
