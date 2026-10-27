@@ -5,18 +5,28 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppTabs from '@/components/app-tabs';
 import { EditorProvider } from '@/state/editor-context';
 import { SavedGraphsProvider } from '@/state/saved-graphs-context';
+import { SettingsProvider } from '@/state/settings-context';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <SavedGraphsProvider>
-          <EditorProvider>
-            <AppTabs />
-          </EditorProvider>
-        </SavedGraphsProvider>
-      </ThemeProvider>
+      <SettingsProvider>
+        <ThemedRoot />
+      </SettingsProvider>
     </GestureHandlerRootView>
+  );
+}
+
+/** Debajo de SettingsProvider: el esquema ya refleja el tema elegido en Ajustes. */
+function ThemedRoot() {
+  const colorScheme = useColorScheme();
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <SavedGraphsProvider>
+        <EditorProvider>
+          <AppTabs />
+        </EditorProvider>
+      </SavedGraphsProvider>
+    </ThemeProvider>
   );
 }
