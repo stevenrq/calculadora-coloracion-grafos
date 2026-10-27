@@ -1,5 +1,15 @@
 import { parseGraphText } from '@/lib/graph/text';
-import { clampScale, distanceToSegment, hitTestEdge, hitTestVertex, screenToWorld, worldToScreen } from '../geometry';
+import {
+  ARROW_LENGTH,
+  ARROW_WIDTH,
+  arrowGeometry,
+  clampScale,
+  distanceToSegment,
+  hitTestEdge,
+  hitTestVertex,
+  screenToWorld,
+  worldToScreen,
+} from '../geometry';
 
 const g = parseGraphText('A-B', 'edges', false).graph!;
 const pos = { A: { x: 0, y: 0 }, B: { x: 100, y: 0 } };
@@ -23,4 +33,26 @@ it('hit test de arista', () => {
 it('zoom limitado', () => {
   expect(clampScale(10)).toBe(3);
   expect(clampScale(0.1)).toBe(0.3);
+});
+
+describe('arrowGeometry', () => {
+  it('la línea sale del borde del círculo de origen y la punta toca el borde del destino', () => {
+    const g = arrowGeometry({ x: 0, y: 0 }, { x: 100, y: 0 }, 22)!;
+    expect(g.head[0]).toEqual({ x: 78, y: 0 });
+    expect(g.x1).toBe(22);
+    expect(g.x2).toBe(78 - ARROW_LENGTH);
+    expect(g.head[1].x).toBeCloseTo(66);
+    expect(Math.abs(g.head[1].y - g.head[2].y)).toBeCloseTo(ARROW_WIDTH);
+  });
+
+  it('funciona en cualquier dirección', () => {
+    const g = arrowGeometry({ x: 0, y: 100 }, { x: 0, y: 0 }, 22)!;
+    expect(g.head[0].x).toBeCloseTo(0);
+    expect(g.head[0].y).toBeCloseTo(22);
+    expect(g.y1).toBeCloseTo(78);
+  });
+
+  it('con los círculos encimados no hay flecha', () => {
+    expect(arrowGeometry({ x: 0, y: 0 }, { x: 30, y: 0 }, 22)).toBeNull();
+  });
 });

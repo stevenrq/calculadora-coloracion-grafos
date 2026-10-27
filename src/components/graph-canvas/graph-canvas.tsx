@@ -8,11 +8,12 @@ import {
   useSimultaneousGestures,
   useTapGesture,
 } from 'react-native-gesture-handler';
-import Svg, { Circle, G, Line, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Polygon, Text as SvgText } from 'react-native-svg';
 
 import { contrastText } from '@/constants/palette';
 import { useTheme } from '@/hooks/use-theme';
 import {
+  arrowGeometry,
   clampScale,
   EDGE_HIT_TOLERANCE,
   hitTestEdge,
@@ -196,18 +197,22 @@ export function GraphCanvas({
               const isSelected = selectedEdge !== null && sameEdge(edge, selectedEdge, graph.directed);
               const isHighlighted = highlightEdges.some((h) => sameEdge(edge, h, graph.directed));
               const stroke = isSelected ? theme.primary : isHighlighted ? highlightColor : theme.edge;
+              const lineProps = {
+                stroke,
+                strokeWidth: isSelected ? 5 : isHighlighted ? 4 : 2.5,
+                strokeDasharray: isHighlighted && !isSelected ? highlightDash : undefined,
+                strokeLinecap: 'round' as const,
+              };
+              const key = `${edge[0]}|${edge[1]}`;
+              if (!graph.directed) return <Line key={key} x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineProps} />;
+              // Dirigido: la línea termina en la base de la punta, que toca el borde del vértice de llegada.
+              const arrow = arrowGeometry(a, b, VERTEX_RADIUS);
+              if (!arrow) return null;
               return (
-                <Line
-                  key={`${edge[0]}|${edge[1]}`}
-                  x1={a.x}
-                  y1={a.y}
-                  x2={b.x}
-                  y2={b.y}
-                  stroke={stroke}
-                  strokeWidth={isSelected ? 5 : isHighlighted ? 4 : 2.5}
-                  strokeDasharray={isHighlighted && !isSelected ? highlightDash : undefined}
-                  strokeLinecap="round"
-                />
+                <G key={key}>
+                  <Line x1={arrow.x1} y1={arrow.y1} x2={arrow.x2} y2={arrow.y2} {...lineProps} />
+                  <Polygon points={arrow.head.map((p) => `${p.x},${p.y}`).join(' ')} fill={stroke} />
+                </G>
               );
             })}
             {graph.vertices.map((v) => {

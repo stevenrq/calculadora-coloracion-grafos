@@ -33,6 +33,37 @@ export function worldToScreen(p: Point, vp: Viewport): Point {
   return { x: p.x * vp.scale + vp.tx, y: p.y * vp.scale + vp.ty };
 }
 
+/** Punta de flecha de los grafos dirigidos: largo (en la dirección de la arista) y ancho de la base. */
+export const ARROW_LENGTH = 12;
+export const ARROW_WIDTH = 10;
+
+/**
+ * Flecha de `a` a `b` entre dos círculos de radio `radius`: la línea va del borde de `a` a la base de la punta, y la
+ * punta toca el borde de `b`. `null` si no queda sitio para la punta (círculos encimados o casi).
+ */
+export function arrowGeometry(
+  a: Point,
+  b: Point,
+  radius: number,
+): { x1: number; y1: number; x2: number; y2: number; head: [Point, Point, Point] } | null {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d - 2 * radius < ARROW_LENGTH) return null;
+  const ux = dx / d;
+  const uy = dy / d;
+  const tip = { x: b.x - ux * radius, y: b.y - uy * radius };
+  const base = { x: tip.x - ux * ARROW_LENGTH, y: tip.y - uy * ARROW_LENGTH };
+  const half = ARROW_WIDTH / 2;
+  return {
+    x1: a.x + ux * radius,
+    y1: a.y + uy * radius,
+    x2: base.x,
+    y2: base.y,
+    head: [tip, { x: base.x - uy * half, y: base.y + ux * half }, { x: base.x + uy * half, y: base.y - ux * half }],
+  };
+}
+
 export function distanceToSegment(p: Point, a: Point, b: Point): number {
   const dx = b.x - a.x;
   const dy = b.y - a.y;

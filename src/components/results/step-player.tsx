@@ -1,15 +1,12 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Host, Slider } from '@expo/ui/jetpack-compose';
-import { type ComponentProps, useEffect, useState } from 'react';
+import { type ComponentProps, type ReactNode, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ResultCard } from '@/components/results/result-card';
-import { graphColor } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { PLAYBACK_SPEEDS, saturationRows, speedLabel, stepIntervalMs } from '@/lib/coloring/replay';
-import type { ColoringStep, ConcreteAlgorithm } from '@/lib/coloring/types';
-import type { VertexId } from '@/lib/graph/types';
+import { PLAYBACK_SPEEDS, speedLabel, stepIntervalMs } from '@/lib/coloring/replay';
 
 type IconName = ComponentProps<typeof MaterialIcons>['name'];
 
@@ -47,26 +44,35 @@ function ControlButton({
   );
 }
 
+/**
+ * Reproductor de pasos de cualquier algoritmo que devuelva sus pasos como datos (coloración, etapas de Kahn…).
+ * Lo propio de cada módulo (notas, tablas) va como `children`, debajo de los controles.
+ */
 export function StepPlayer({
   steps,
-  truncated,
   index,
   onIndexChange,
-  algorithm,
-  degrees = {},
+  resetKey,
+  swatchColor,
+  children,
 }: {
-  steps: readonly ColoringStep[];
-  truncated: boolean;
+  steps: readonly { message: string }[];
   index: number;
   onIndexChange(i: number): void;
-  algorithm: ConcreteAlgorithm;
-  /** Para la columna "Grado" de la tabla de saturación (solo DSATUR). */
-  degrees?: Readonly<Record<VertexId, number>>;
+  /** Cuando cambia (otro grafo, otro algoritmo) se detiene la reproducción; la velocidad elegida se conserva. */
+  resetKey: string | null;
+  /** Color del punto junto al mensaje del paso `i`, si corresponde. */
+  swatchColor?(i: number): string | undefined;
+  children?: ReactNode;
 }) {
   const theme = useTheme();
   const [playing, setPlaying] = useState(false);
   const [speedIndex, setSpeedIndex] = useState(DEFAULT_SPEED_INDEX);
-  const [showSaturation, setShowSaturation] = useState(false);
+  const [seenKey, setSeenKey] = useState(resetKey);
+  if (seenKey !== resetKey) {
+    setSeenKey(resetKey);
+    setPlaying(false);
+  }
 
   const last = steps.length - 1;
   const atStart = index <= -1;
@@ -108,7 +114,7 @@ export function StepPlayer({
   };
 
   const step = index >= 0 ? steps[index] : undefined;
-  const rows = algorithm === 'dsatur' && step?.saturation ? saturationRows(step.saturation, degrees) : null;
+  const swatch = step ? swatchColor?.(index) : undefined;
 
   return (
     <ResultCard title="Paso a paso">
@@ -119,9 +125,7 @@ export function StepPlayer({
               Paso {index + 1} de {steps.length}
             </Text>
             <View style={styles.messageRow}>
-              {step.kind === 'assign' && step.color !== undefined && (
-                <View style={[styles.swatch, { backgroundColor: graphColor(step.color), borderColor: theme.edge }]} />
-              )}
+              {swatch && <View style={[styles.swatch, { backgroundColor: swatch, borderColor: theme.edge }]} />}
               <Text style={[styles.text, { color: theme.text }]}>{step.message}</Text>
             </View>
           </>
@@ -159,42 +163,7 @@ export function StepPlayer({
         <Text style={[styles.speedValue, { color: theme.text }]}>{speedLabel(speed)}</Text>
       </View>
 
-      {truncated && (
-        <Text style={[styles.note, { color: theme.textSecondary }]}>Se omitieron pasos intermedios del backtracking.</Text>
-      )}
-
-      {rows && (
-        <View>
-          <Pressable
-            onPress={() => setShowSaturation((open) => !open)}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showSaturation }}
-            style={styles.disclosure}>
-            <Text style={[styles.disclosureLabel, { color: theme.primary }]}>Ver saturación</Text>
-            <MaterialIcons name={showSaturation ? 'expand-less' : 'expand-more'} size={22} color={theme.primary} />
-          </Pressable>
-          {showSaturation && (
-            <View style={[styles.table, { borderColor: theme.border }]}>
-              <View style={[styles.tableRow, { backgroundColor: theme.backgroundSelected }]}>
-                <Text style={[styles.cell, styles.headerCell, { color: theme.text }]}>Vértice</Text>
-                <Text style={[styles.cell, styles.headerCell, { color: theme.text }]}>Saturación</Text>
-                <Text style={[styles.cell, styles.headerCell, { color: theme.text }]}>Grado</Text>
-              </View>
-              {rows.map((row) => {
-                const chosen = row.vertex === step?.vertex;
-                const color = chosen ? theme.primary : theme.text;
-                return (
-                  <View key={row.vertex} style={[styles.tableRow, { borderTopColor: theme.border }, styles.bodyRow]}>
-                    <Text style={[styles.cell, { color }, chosen && styles.headerCell]}>{row.vertex}</Text>
-                    <Text style={[styles.cell, { color }]}>{row.saturation}</Text>
-                    <Text style={[styles.cell, { color }]}>{row.degree}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </View>
-      )}
+      {children}
     </ResultCard>
   );
 }
@@ -212,12 +181,4 @@ const styles = StyleSheet.create({
   speedLabel: { fontSize: 13, fontWeight: '600' },
   slider: { flex: 1 },
   speedValue: { width: 48, textAlign: 'right', fontSize: 14, fontWeight: '700' },
-  note: { fontSize: 13, lineHeight: 18, fontStyle: 'italic' },
-  disclosure: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
-  disclosureLabel: { fontSize: 15, fontWeight: '700' },
-  table: { borderWidth: 1, borderRadius: 12, overflow: 'hidden' },
-  tableRow: { flexDirection: 'row', paddingVertical: Spacing.two, paddingHorizontal: Spacing.three },
-  bodyRow: { borderTopWidth: StyleSheet.hairlineWidth },
-  cell: { flex: 1, fontSize: 14 },
-  headerCell: { fontWeight: '700' },
 });

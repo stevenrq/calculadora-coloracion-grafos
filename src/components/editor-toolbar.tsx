@@ -43,12 +43,13 @@ function ToolButton({ icon, label, accessibilityLabel, onPress, disabled = false
 export function EditorToolbar(props: {
   canUndo: boolean;
   canRedo: boolean;
-  canColor: boolean;
   onUndo(): void;
   onRedo(): void;
-  onRelayout(): void;
+  /** Sin él no se muestra "Reorganizar" (p. ej. en la vista Tabla). */
+  onRelayout?(): void;
   onClear(): void;
-  onColor(): void;
+  /** Acción principal del módulo: Colorear, Analizar… */
+  primary: { icon: IconName; label: string; accessibilityLabel: string; onPress(): void; disabled?: boolean };
 }) {
   const theme = useTheme();
   return (
@@ -67,16 +68,16 @@ export function EditorToolbar(props: {
         onPress={props.onRedo}
         disabled={!props.canRedo}
       />
-      <ToolButton icon="auto-fix-high" label="Reorganizar" accessibilityLabel="Reorganizar los vértices" onPress={props.onRelayout} />
+      {props.onRelayout && (
+        <ToolButton
+          icon="auto-fix-high"
+          label="Reorganizar"
+          accessibilityLabel="Reorganizar los vértices"
+          onPress={props.onRelayout}
+        />
+      )}
       <ToolButton icon="delete-sweep" label="Limpiar" accessibilityLabel="Limpiar el grafo" onPress={props.onClear} />
-      <ToolButton
-        icon="palette"
-        label="Colorear"
-        accessibilityLabel="Colorear el grafo"
-        onPress={props.onColor}
-        disabled={!props.canColor}
-        primary
-      />
+      <ToolButton {...props.primary} primary />
     </View>
   );
 }

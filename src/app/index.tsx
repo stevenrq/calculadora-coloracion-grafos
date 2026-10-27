@@ -150,12 +150,17 @@ export default function ColorScreen() {
         <EditorToolbar
           canUndo={state.past.length > 0}
           canRedo={state.future.length > 0}
-          canColor={vertexCount > 0}
           onUndo={() => dispatch({ type: 'undo' })}
           onRedo={() => dispatch({ type: 'redo' })}
           onRelayout={relayout}
           onClear={() => dispatch({ type: 'clear' })}
-          onColor={results.openResults}
+          primary={{
+            icon: 'palette',
+            label: 'Colorear',
+            accessibilityLabel: 'Colorear el grafo',
+            onPress: results.openResults,
+            disabled: vertexCount === 0,
+          }}
         />
 
         <ResultsSheet visible={results.open} onClose={results.closeResults}>
