@@ -1,6 +1,7 @@
 import * as Sharing from 'expo-sharing';
 import { type ComponentRef, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 
 import { GraphThumbnail } from '@/components/graph-thumbnail';
@@ -17,6 +18,7 @@ const DRAWING_SIZE = 260;
 /**
  * Vista previa de la imagen y botón para compartirla como PNG con el menú de Android.
  * La tarjeta se captura tal como se ve: en pantalla, Android sí la dibuja (fuera de pantalla puede salir en blanco).
+ * Si falla, el aviso queda dentro del diálogo: el snackbar de la pantalla quedaría tapado por la hoja de resultados.
  */
 export function ShareDialog({
   visible,
@@ -25,7 +27,6 @@ export function ShareDialog({
   result,
   chromatic,
   onClose,
-  onError,
 }: {
   visible: boolean;
   graph: Graph;
@@ -33,24 +34,31 @@ export function ShareDialog({
   result: ColoringResult | null;
   chromatic: ChromaticState | null;
   onClose(): void;
-  onError(message: string): void;
 }) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const card = useRef<ComponentRef<typeof View>>(null);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const ready = visible && result !== null && chromatic !== null;
+
+  const close = () => {
+    setFailed(false);
+    onClose();
+  };
 
   const share = async () => {
     setBusy(true);
+    setFailed(false);
     try {
       const uri = await captureRef(card, { format: 'png', quality: 1, result: 'tmpfile' });
       if (!(await Sharing.isAvailableAsync())) throw new Error('Compartir no está disponible');
       // Cerrar el menú de compartir sin elegir una app no es un error: la promesa se resuelve igual.
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Compartir grafo coloreado' });
-      onClose();
+      close();
     } catch (error) {
       console.warn('No se pudo compartir la imagen', error);
-      onError('No se pudo compartir la imagen.');
+      setFailed(true);
     } finally {
       setBusy(false);
     }
@@ -59,50 +67,65 @@ export function ShareDialog({
   const text = ready ? shareCardText(graph, result, chromatic) : null;
 
   return (
-    <Modal visible={ready} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.backdrop}>
+    <Modal visible={ready} transparent animationType="fade" onRequestClose={close} statusBarTranslucent>
+      <View
+        style={[
+          styles.backdrop,
+          { paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + Spacing.three },
+        ]}>
         <View style={[styles.dialog, { backgroundColor: theme.background }]}>
           <Text style={[styles.dialogTitle, { color: theme.text }]} accessibilityRole="header">
             Compartir imagen
           </Text>
           {text && result && (
+            // En pantallas bajas la tarjeta se desplaza y los botones siguen a la vista.
             // collapsable={false}: Android no debe aplanar la vista, o la captura sale vacía.
-            <View
-              ref={card}
-              collapsable={false}
-              style={[styles.card, { backgroundColor: theme.background, borderColor: theme.border }]}
-              accessible
-              accessibilityLabel={[text.chromatic, text.used, ...text.legend.map((l) => l.text), text.more]
-                .filter(Boolean)
-                .join('. ')}>
-              <Text style={[styles.brand, { color: theme.primary }]}>{text.title}</Text>
-              <Text style={[styles.chromatic, { color: theme.text }]}>{text.chromatic}</Text>
-              <View style={[styles.drawing, { backgroundColor: theme.canvas }]}>
-                <GraphThumbnail
-                  graph={graph}
-                  positions={positions}
-                  size={DRAWING_SIZE}
-                  vertexColors={coloringColors(result.coloring)}
-                  showLabels
-                />
+            <ScrollView style={styles.scroll}>
+              <View
+                ref={card}
+                collapsable={false}
+                style={[styles.card, { backgroundColor: theme.background, borderColor: theme.border }]}
+                accessible
+                accessibilityLabel={[text.chromatic, text.used, ...text.legend.map((l) => l.text), text.more]
+                  .filter(Boolean)
+                  .join('. ')}>
+                <Text style={[styles.brand, { color: theme.primary }]}>{text.title}</Text>
+                <Text style={[styles.chromatic, { color: theme.text }]}>{text.chromatic}</Text>
+                <View style={[styles.drawing, { backgroundColor: theme.canvas }]}>
+                  <GraphThumbnail
+                    graph={graph}
+                    positions={positions}
+                    size={DRAWING_SIZE}
+                    vertexColors={coloringColors(result.coloring)}
+                    showLabels
+                  />
+                </View>
+                <Text style={[styles.used, { color: theme.textSecondary }]}>{text.used}</Text>
+                <View style={styles.legend}>
+                  {text.legend.map((line) => (
+                    <View key={line.color} style={styles.legendRow}>
+                      <View style={[styles.swatch, { backgroundColor: graphColor(line.color), borderColor: theme.edge }]} />
+                      <Text style={[styles.legendText, { color: theme.text }]} numberOfLines={2}>
+                        {line.text}
+                      </Text>
+                    </View>
+                  ))}
+                  {text.more && <Text style={[styles.legendText, { color: theme.textSecondary }]}>{text.more}</Text>}
+                </View>
               </View>
-              <Text style={[styles.used, { color: theme.textSecondary }]}>{text.used}</Text>
-              <View style={styles.legend}>
-                {text.legend.map((line) => (
-                  <View key={line.color} style={styles.legendRow}>
-                    <View style={[styles.swatch, { backgroundColor: graphColor(line.color), borderColor: theme.edge }]} />
-                    <Text style={[styles.legendText, { color: theme.text }]} numberOfLines={2}>
-                      {line.text}
-                    </Text>
-                  </View>
-                ))}
-                {text.more && <Text style={[styles.legendText, { color: theme.textSecondary }]}>{text.more}</Text>}
-              </View>
-            </View>
+            </ScrollView>
+          )}
+          {failed && (
+            <Text
+              style={[styles.error, { color: theme.danger }]}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite">
+              No se pudo compartir la imagen. Prueba otra vez.
+            </Text>
           )}
           <View style={styles.actions}>
             <Pressable
-              onPress={onClose}
+              onPress={close}
               accessibilityRole="button"
               style={({ pressed }) => [styles.button, pressed && { backgroundColor: theme.backgroundSelected }]}>
               <Text style={[styles.buttonLabel, { color: theme.primary }]}>Cancelar</Text>
@@ -133,7 +156,8 @@ export function ShareDialog({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: Spacing.three },
-  dialog: { borderRadius: 20, padding: Spacing.three, gap: Spacing.three, elevation: 8 },
+  dialog: { maxHeight: '100%', borderRadius: 20, padding: Spacing.three, gap: Spacing.three, elevation: 8 },
+  scroll: { flexShrink: 1 },
   dialogTitle: { fontSize: 20, lineHeight: 28, fontWeight: '700' },
   card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: Spacing.three, gap: Spacing.two },
   brand: { fontSize: 13, lineHeight: 18, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
@@ -144,6 +168,7 @@ const styles = StyleSheet.create({
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   swatch: { width: 14, height: 14, borderRadius: 7, borderWidth: 1 },
   legendText: { flex: 1, fontSize: 14, lineHeight: 20 },
+  error: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.two },
   button: {
     minHeight: 48,

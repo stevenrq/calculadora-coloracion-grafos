@@ -95,7 +95,7 @@ export function SavedGraphMenu({
   );
   return (
     <Modal visible={item !== null} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Cerrar el menú">
+      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar el menú">
         {/* Los toques dentro del menú no lo cierran. */}
         <Pressable style={[styles.menu, { backgroundColor: theme.background }]} onPress={() => {}} accessible={false}>
           <Text style={[styles.menuTitle, { color: theme.text }]} numberOfLines={1}>

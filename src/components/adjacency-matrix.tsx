@@ -110,7 +110,8 @@ function HeaderCell({
   const theme = useTheme();
   const { text, fontSize } = fitLabel(label);
   return (
-    <View style={style} accessibilityLabel={accessibilityLabel}>
+    // Con etiqueta propia ("Grado de entrada"), TalkBack la lee en vez del texto corto ("Ent.").
+    <View style={style} accessible={accessibilityLabel !== undefined} accessibilityLabel={accessibilityLabel}>
       <Text style={[styles.headerText, { color: theme.text, fontSize: Math.min(fontSize, 15) }]} numberOfLines={1}>
         {text}
       </Text>

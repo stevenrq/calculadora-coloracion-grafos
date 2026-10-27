@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AdjacencyMatrixView } from '@/components/adjacency-matrix';
+import { EditorHeader } from '@/components/editor-header';
 import { EditorToolbar } from '@/components/editor-toolbar';
 import { GraphCanvas } from '@/components/graph-canvas/graph-canvas';
 import { GraphTextEditor } from '@/components/graph-text-editor';
@@ -16,7 +17,6 @@ import { ResultsPanel } from '@/components/results/results-panel';
 import { ResultsSheet, SHEET_PEEK } from '@/components/results/results-sheet';
 import { type BridgePaint, StageBridgeCard } from '@/components/results/stage-bridge-card';
 import { SegmentedControl } from '@/components/segmented-control';
-import { SettingsButton } from '@/components/settings-button';
 import { SelectionBar } from '@/components/selection-bar';
 import { ShareDialog } from '@/components/share-dialog';
 import { coloringColors, coloringNumbers } from '@/constants/palette';
@@ -208,15 +208,11 @@ export default function ColorScreen() {
   if (mode === 'matrix') {
     return (
       <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
-        <View style={styles.header}>
+        <EditorHeader counts={countsLabel(vertexCount, edgeCount)}>
           <View style={styles.modeSwitch}>
             <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={changeMode} />
           </View>
-          <Text style={[styles.counts, { color: theme.textSecondary }]} numberOfLines={2}>
-            {countsLabel(vertexCount, edgeCount)}
-          </Text>
-          <SettingsButton />
-        </View>
+        </EditorHeader>
         <View style={styles.canvasArea}>
           <AdjacencyMatrixView
             graph={doc.graph}
@@ -234,12 +230,11 @@ export default function ColorScreen() {
   if (mode === 'text') {
     return (
       <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
-        <View style={styles.header}>
+        <EditorHeader counts={countsLabel(vertexCount, edgeCount)}>
           <View style={styles.modeSwitch}>
             <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={changeMode} />
           </View>
-          <SettingsButton />
-        </View>
+        </EditorHeader>
         <View style={styles.canvasArea}>
           <GraphTextEditor graph={doc.graph} directed={doc.graph.directed} onApply={applyText} />
           {snackbar}
@@ -251,22 +246,17 @@ export default function ColorScreen() {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
       {practicing ? (
-        <View style={[styles.header, styles.practiceHeader]}>
+        <EditorHeader counts={countsLabel(vertexCount, edgeCount)}>
           <Text style={[styles.practiceTitle, { color: theme.text }]} accessibilityRole="header">
             Colorea tú: elige un color y toca vértices
           </Text>
-          <SettingsButton />
-        </View>
+        </EditorHeader>
       ) : (
-        <View style={styles.header}>
+        <EditorHeader counts={countsLabel(vertexCount, edgeCount)}>
           <View style={styles.modeSwitch}>
             <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={changeMode} />
           </View>
-          <Text style={[styles.counts, { color: theme.textSecondary }]} numberOfLines={2}>
-            {countsLabel(vertexCount, edgeCount)}
-          </Text>
-          <SettingsButton />
-        </View>
+        </EditorHeader>
       )}
 
       <View style={styles.body}>
@@ -389,10 +379,6 @@ export default function ColorScreen() {
         result={results.displayed}
         chromatic={results.analysis?.chromatic ?? null}
         onClose={() => setSharing(false)}
-        onError={(message) => {
-          setSharing(false);
-          dispatch({ type: 'notify', message });
-        }}
       />
     </SafeAreaView>
   );
@@ -400,15 +386,7 @@ export default function ColorScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
   modeSwitch: { flexBasis: 240, flexShrink: 1 },
-  counts: { flex: 1, fontSize: 12, lineHeight: 16, textAlign: 'right' },
   body: { flex: 1 },
   canvasArea: { flex: 1 },
   // box-none: los toques fuera del botón llegan al lienzo y crean el vértice.
@@ -431,7 +409,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   exampleLabel: { fontSize: 15, fontWeight: '700' },
-  practiceHeader: { minHeight: 56 },
   practiceTitle: { flex: 1, fontSize: 16, lineHeight: 22, fontWeight: '700' },
   practiceButton: {
     position: 'absolute',

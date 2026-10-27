@@ -24,6 +24,8 @@ export function SegmentedControl<T extends string>({
             onPress={() => onChange(option.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
+            // 40 dp + el relleno de 4 dp del riel arriba y abajo = 48 dp; en horizontal pisaría al vecino.
+            hitSlop={{ top: 4, bottom: 4 }}
             style={[styles.segment, selected && [styles.selected, { backgroundColor: theme.background }]]}>
             <Text
               style={[styles.label, { color: selected ? theme.text : theme.textSecondary }]}

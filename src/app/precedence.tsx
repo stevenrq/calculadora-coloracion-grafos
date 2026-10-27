@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AdjacencyMatrixView } from '@/components/adjacency-matrix';
+import { EditorHeader } from '@/components/editor-header';
 import { EditorToolbar } from '@/components/editor-toolbar';
 import { GraphCanvas } from '@/components/graph-canvas/graph-canvas';
 import { NameDialog } from '@/components/name-dialog';
@@ -15,7 +16,6 @@ import { PrecedencePanel } from '@/components/precedence/precedence-panel';
 import { RenameDialog } from '@/components/rename-dialog';
 import { ResultsSheet, SHEET_PEEK } from '@/components/results/results-sheet';
 import { SegmentedControl } from '@/components/segmented-control';
-import { SettingsButton } from '@/components/settings-button';
 import { SelectionBar } from '@/components/selection-bar';
 import { Spacing } from '@/constants/theme';
 import { usePrecedenceView } from '@/hooks/use-precedence-view';
@@ -156,15 +156,11 @@ export default function PrecedenceScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
+      <EditorHeader counts={counts}>
         <View style={styles.modeSwitch}>
           <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={changeMode} />
         </View>
-        <Text style={[styles.counts, { color: theme.textSecondary }]} numberOfLines={2}>
-          {counts}
-        </Text>
-        <SettingsButton />
-      </View>
+      </EditorHeader>
       {!analysis.valid && <IssuesBanner issues={analysis.issues} />}
 
       <View style={styles.body}>
@@ -262,15 +258,7 @@ export default function PrecedenceScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
   modeSwitch: { flexBasis: 240, flexShrink: 1 },
-  counts: { flex: 1, fontSize: 12, lineHeight: 16, textAlign: 'right' },
   body: { flex: 1 },
   area: { flex: 1 },
   // none: el texto de ayuda no tapa los toques; el lienzo crea la actividad debajo.
