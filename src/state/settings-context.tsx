@@ -17,11 +17,16 @@ interface SettingsValue {
 const SettingsContext = createContext<SettingsValue | null>(null);
 
 function initialSettings(): Settings {
+  let settings = DEFAULT_SETTINGS;
   try {
-    return deserializeSettings(Storage.getItemSync(SETTINGS_KEY));
+    settings = deserializeSettings(Storage.getItemSync(SETTINGS_KEY));
   } catch {
-    return DEFAULT_SETTINGS;
+    // Si la lectura falla, valen los ajustes por defecto.
   }
+  // Antes del primer render (en un efecto llegaría tarde): ninguna pantalla se pinta un instante con el tema del sistema.
+  // Es idempotente, así que no importa que React llame dos veces al inicializador en desarrollo.
+  Appearance.setColorScheme(colorSchemeFor(settings.theme));
+  return settings;
 }
 
 /** Ajustes de la app, persistidos tras cada cambio; el tema se aplica a toda la app (también a lo nativo). */
@@ -31,6 +36,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Igual que los guardados: lo leído al abrir no se reescribe.
   const loaded = useRef(settings);
 
+  // Los cambios posteriores, desde Ajustes.
   useEffect(() => {
     Appearance.setColorScheme(colorSchemeFor(settings.theme));
   }, [settings.theme]);
