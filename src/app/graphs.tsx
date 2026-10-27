@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { type ComponentRef, useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -55,6 +56,19 @@ export default function GraphsScreen() {
   const cards = buildCards();
   const precedenceCards = buildPrecedenceCards();
   const now = useNow();
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+
+  // Un guardado hecho en Colorear o Precedencias queda arriba de la lista: al volver aquí, que se vea. Por fecha y no
+  // por id, para que borrar el primero o deshacerlo no mueva la lista.
+  const newest = saved.items[0]?.savedAt ?? '';
+  const seenNewest = useRef(newest);
+  useFocusEffect(
+    useCallback(() => {
+      if (newest <= seenNewest.current) return;
+      seenNewest.current = newest;
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }, [newest]),
+  );
 
   const duplicate = (item: SavedGraph) => {
     setMenuFor(null);
@@ -76,7 +90,7 @@ export default function GraphsScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
             Mis grafos
