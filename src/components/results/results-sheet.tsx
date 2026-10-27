@@ -17,13 +17,28 @@ const CLOSE_BELOW = 0.5;
 const FLING_VELOCITY = 800;
 const SPRING = { damping: 22, stiffness: 220 };
 
-export function ResultsSheet({ visible, onClose, children }: { visible: boolean; onClose(): void; children: ReactNode }) {
+export function ResultsSheet({
+  visible,
+  onClose,
+  actions,
+  children,
+}: {
+  visible: boolean;
+  onClose(): void;
+  /** Botones extra de la cabecera, a la izquierda de cerrar (p. ej. compartir). */
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
   if (!visible) return null;
   // Montar el cuerpo en cada apertura: arranca siempre en `peek`.
-  return <SheetBody onClose={onClose}>{children}</SheetBody>;
+  return (
+    <SheetBody onClose={onClose} actions={actions}>
+      {children}
+    </SheetBody>
+  );
 }
 
-function SheetBody({ onClose, children }: { onClose(): void; children: ReactNode }) {
+function SheetBody({ onClose, actions, children }: { onClose(): void; actions?: ReactNode; children: ReactNode }) {
   const theme = useTheme();
   const height = useSharedValue(0);
   const limits = useSharedValue({ peek: 0, expanded: 0 });
@@ -96,13 +111,16 @@ function SheetBody({ onClose, children }: { onClose(): void; children: ReactNode
         </GestureDetector>
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.text }]}>Resultados</Text>
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Cerrar resultados y volver a editar"
-            style={({ pressed }) => [styles.close, pressed && { backgroundColor: theme.backgroundSelected }]}>
-            <MaterialIcons name="close" size={24} color={theme.text} />
-          </Pressable>
+          <View style={styles.actions}>
+            {actions}
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar resultados y volver a editar"
+              style={({ pressed }) => [styles.close, pressed && { backgroundColor: theme.backgroundSelected }]}>
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </Pressable>
+          </View>
         </View>
         <ScrollView contentContainerStyle={styles.content}>{children}</ScrollView>
       </Animated.View>
@@ -130,6 +148,7 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.two,
   },
   title: { fontSize: 20, lineHeight: 28, fontWeight: '700' },
+  actions: { flexDirection: 'row', alignItems: 'center' },
   close: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24 },
   content: { padding: Spacing.three, paddingTop: Spacing.one, gap: Spacing.three },
 });

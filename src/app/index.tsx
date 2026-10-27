@@ -18,6 +18,7 @@ import { type BridgePaint, StageBridgeCard } from '@/components/results/stage-br
 import { SegmentedControl } from '@/components/segmented-control';
 import { SettingsButton } from '@/components/settings-button';
 import { SelectionBar } from '@/components/selection-bar';
+import { ShareDialog } from '@/components/share-dialog';
 import { coloringColors, coloringNumbers } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
 import { useColoringAnalysis } from '@/hooks/use-coloring-analysis';
@@ -58,6 +59,7 @@ export default function ColorScreen() {
   const [fittedKey, setFittedKey] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [naming, setNaming] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const saved = useSavedGraphs();
   const [mode, setMode] = useState<Mode>('draw');
   const results = useResultsView(doc.graph, mode === 'draw');
@@ -341,7 +343,20 @@ export default function ColorScreen() {
           </>
         )}
 
-        <ResultsSheet visible={results.open} onClose={results.closeResults}>
+        <ResultsSheet
+          visible={results.open}
+          onClose={results.closeResults}
+          actions={
+            <Pressable
+              onPress={() => setSharing(true)}
+              disabled={!results.displayed}
+              accessibilityRole="button"
+              accessibilityLabel="Compartir imagen del grafo coloreado"
+              accessibilityState={{ disabled: !results.displayed }}
+              style={({ pressed }) => [styles.iconButton, pressed && { backgroundColor: theme.backgroundSelected }]}>
+              <MaterialIcons name="share" size={24} color={results.displayed ? theme.text : theme.textSecondary} />
+            </Pressable>
+          }>
           <ResultsPanel
             graph={doc.graph}
             view={results}
@@ -367,6 +382,18 @@ export default function ColorScreen() {
         onCancel={() => setRenaming(false)}
       />
       {nameDialog}
+      <ShareDialog
+        visible={sharing}
+        graph={doc.graph}
+        positions={doc.positions}
+        result={results.displayed}
+        chromatic={results.analysis?.chromatic ?? null}
+        onClose={() => setSharing(false)}
+        onError={(message) => {
+          setSharing(false);
+          dispatch({ type: 'notify', message });
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -420,4 +447,5 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   practiceButtonLabel: { fontSize: 15, fontWeight: '700' },
+  iconButton: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
 });
