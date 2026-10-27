@@ -100,3 +100,10 @@ describe('chromaticBounds', () => {
     });
   });
 });
+
+it('chromaticBounds: con aristas la cota inferior es al menos 2 aunque la clique llegue cortada por tiempo', () => {
+  const path3 = parseGraphText('A-B, B-C', 'edges', false).graph!;
+  const bounds = chromaticBounds(path3, 1, true);
+  expect(bounds.lower).toBe(2);
+  expect(bounds.lowerReason).toBe('clique');
+});

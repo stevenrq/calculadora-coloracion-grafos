@@ -16,6 +16,14 @@ export function keepProven(prev: KeyedChromatic, next: { key: string; state: Chr
   return next;
 }
 
+/**
+ * ¿Hay que lanzar la búsqueda exacta para este grafo? No si ya se demostró χ o ya se agotó el tiempo (repetirla daría
+ * lo mismo); sí tras cancelar, para que reabrir la hoja permita reintentar.
+ */
+export function needsExactSearch(prev: KeyedChromatic, key: string): boolean {
+  return prev?.key !== key || (prev.state.status !== 'exact' && prev.state.status !== 'timeout');
+}
+
 /** Coloración que se pinta según el algoritmo elegido. Auto/Exacto usan DSATUR mientras la búsqueda corre. */
 export function selectDisplayedResult(
   algorithm: AlgorithmId,

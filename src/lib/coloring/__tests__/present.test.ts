@@ -2,7 +2,7 @@ import { exampleGraph, findExample } from '@/lib/examples/coloring-examples';
 import { dsaturColoring } from '../dsatur';
 import { exactColoringSync } from '../exact';
 import { greedyColoring } from '../greedy';
-import { chromaticLabel, colorsUsedWarning, keepProven, selectDisplayedResult } from '../present';
+import { chromaticLabel, colorsUsedWarning, keepProven, needsExactSearch, selectDisplayedResult } from '../present';
 import { welshPowellColoring } from '../welsh-powell';
 
 const g = exampleGraph(findExample('w5'));
@@ -60,5 +60,25 @@ describe('keepProven sin cambios', () => {
     expect(keepProven(prev, { key: 'g1', state: { status: 'running', k: 4 } })).toBe(prev);
     const next = { key: 'g1', state: { status: 'running' as const, k: 5 } };
     expect(keepProven(prev, next)).toBe(next);
+  });
+});
+
+describe('needsExactSearch', () => {
+  const timeout = { status: 'timeout' as const, lower: 3, upper: 4, result: h.dsatur };
+  const cancelled = { status: 'cancelled' as const, lower: 3, upper: 4, result: h.dsatur };
+
+  it('relanza solo si no hay un resultado definitivo para este grafo', () => {
+    expect(needsExactSearch(null, 'k')).toBe(true);
+    expect(needsExactSearch({ key: 'k', state: { status: 'running', k: 3 } }, 'k')).toBe(true);
+    expect(needsExactSearch({ key: 'otro', state: exact }, 'k')).toBe(true);
+  });
+
+  it('no repite una búsqueda demostrada ni una que ya agotó el tiempo', () => {
+    expect(needsExactSearch({ key: 'k', state: exact }, 'k')).toBe(false);
+    expect(needsExactSearch({ key: 'k', state: timeout }, 'k')).toBe(false);
+  });
+
+  it('tras cancelar, reabrir la hoja reintenta', () => {
+    expect(needsExactSearch({ key: 'k', state: cancelled }, 'k')).toBe(true);
   });
 });

@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import { analyzeGraph, type StructuralAnalysis } from '@/lib/analysis/analyze';
 import type { ExactProgress } from '@/lib/coloring/exact';
-import { type ChromaticState, type KeyedChromatic, keepProven } from '@/lib/coloring/present';
+import { type ChromaticState, type KeyedChromatic, keepProven, needsExactSearch } from '@/lib/coloring/present';
 import { DEFAULT_EXACT_BUDGET_MS, type ExactOutcome, runExact } from '@/lib/coloring/run-exact';
 import { graphKey } from '@/lib/graph/graph';
 import type { Graph } from '@/lib/graph/types';
@@ -46,8 +46,11 @@ export function useColoringAnalysis(
     },
   );
 
+  // Lee el último resultado sin volverlo dependencia: reabrir la hoja no repite una búsqueda ya resuelta.
+  const alreadySolved = useEffectEvent(() => !needsExactSearch(exact, key));
+
   useEffect(() => {
-    if (!active) return;
+    if (!active || alreadySolved()) return;
     // disposed: el efecto se limpió (otro grafo, hoja cerrada o desmontaje) → su resultado se descarta.
     // userCancelled: el usuario pulsó Cancelar → el resultado 'cancelled' sí se muestra.
     let disposed = false;
