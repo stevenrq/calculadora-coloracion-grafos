@@ -11,6 +11,7 @@ function chunk(type, data) {
   const length = Buffer.alloc(4);
   length.writeUInt32BE(data.length);
   const crc = Buffer.alloc(4);
+  // zlib.crc32 existe desde Node 22.2; Expo 58 ya exige Node 22.13 o más (engines de expo), así que no hace falta tabla.
   crc.writeUInt32BE(zlib.crc32(typeAndData));
   return Buffer.concat([length, typeAndData, crc]);
 }
