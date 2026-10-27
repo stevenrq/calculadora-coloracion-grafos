@@ -100,6 +100,12 @@ describe('serializeSaved / deserializeSaved', () => {
     expect(deserializeSaved(text)).toEqual([good]);
   });
 
+  it('omite un guardado de coloración con un grafo dirigido (solo pasa con datos corruptos)', () => {
+    const directed: EditorDoc = { ...docOf('A', 'B'), graph: { directed: true, vertices: ['A', 'B'], edges: [['A', 'B']] } };
+    const bad = save(empty, 'Dirigido', 'd', directed).items;
+    expect(deserializeSaved(serializeSaved(bad))).toEqual([]);
+  });
+
   it('sin datos o con JSON inválido devuelve una lista vacía', () => {
     expect(deserializeSaved(null)).toEqual([]);
     expect(deserializeSaved('{no es json')).toEqual([]);

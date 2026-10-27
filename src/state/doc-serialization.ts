@@ -66,11 +66,12 @@ export function deserializeDoc(text: string | null): EditorDoc | null {
   if (activities !== undefined) {
     if (typeof activities !== 'object' || activities === null) return null;
     cleanActivities = {};
-    const raw = activities as Record<string, Partial<ActivityInfo> | undefined>;
+    const raw = activities as Record<string, unknown>;
     for (const v of vertices) {
       const info = raw[v];
       if (info === undefined) continue;
-      const { name, duration } = info;
+      if (typeof info !== 'object' || info === null) return null;
+      const { name, duration } = info as Partial<ActivityInfo>;
       if (typeof name !== 'string' || name.length > NAME_MAX_LENGTH) return null;
       if (duration !== null && !(isFiniteNumber(duration) && duration >= 0 && duration <= MAX_DURATION)) return null;
       cleanActivities[v] = { name, duration };

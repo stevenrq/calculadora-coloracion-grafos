@@ -43,6 +43,8 @@ describe('documento de precedencias', () => {
     ['nombre de más de 80 caracteres', withData({ activities: { A: { name: 'x'.repeat(81), duration: 1 } } })],
     ['duración negativa', withData({ activities: { A: { name: '', duration: -1 } } })],
     ['flecha repetida', withData({ edges: [['A', 'B'], ['A', 'B']] })],
+    ['actividad null', withData({ activities: { A: null } })],
+    ['actividad que no es objeto', withData({ activities: { A: 'Requisitos' } })],
   ])('%s → null', (_n, text) => expect(deserializeDoc(text)).toBeNull());
 });
 

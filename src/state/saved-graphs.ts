@@ -123,8 +123,8 @@ export function deserializeSaved(text: string | null): SavedGraph[] {
     if (!MODULES.includes(module as DocKey)) continue;
     if (typeof savedAt !== 'string' || Number.isNaN(Date.parse(savedAt))) continue;
     const parsed = typeof doc === 'string' ? deserializeDoc(doc) : null;
-    // Un grafo de precedencias es siempre dirigido.
-    if (!parsed || (module === 'precedence' && !parsed.graph.directed)) continue;
+    // Un grafo de precedencias es siempre dirigido, y uno de coloración nunca.
+    if (!parsed || parsed.graph.directed !== (module === 'precedence')) continue;
     ids.add(id);
     items.push({ id, name, module: module as DocKey, savedAt, doc: parsed });
   }
