@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
 import { ColorClasses } from '@/components/results/color-classes';
+import { CompareCard } from '@/components/results/compare-card';
 import { SaturationTable } from '@/components/results/saturation-table';
 import { StepPlayer } from '@/components/results/step-player';
 import { StructureCard } from '@/components/results/structure-card';
@@ -35,6 +36,12 @@ export function ResultsPanel({
       {header}
       <AlgorithmPicker value={view.algorithm} onChange={view.changeAlgorithm} />
       <ChromaticCard chromatic={analysis.chromatic} displayed={displayed} onCancel={view.cancelExact} />
+      <CompareCard
+        heuristics={analysis.heuristics}
+        chromatic={analysis.chromatic}
+        selected={view.algorithm}
+        onApply={view.changeAlgorithm}
+      />
       <StepPlayer
         steps={steps}
         index={view.stepIndex}
