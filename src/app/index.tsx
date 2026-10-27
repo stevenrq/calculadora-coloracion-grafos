@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AdjacencyMatrixView } from '@/components/adjacency-matrix';
 import { EditorToolbar } from '@/components/editor-toolbar';
 import { GraphCanvas } from '@/components/graph-canvas/graph-canvas';
 import { GraphTextEditor } from '@/components/graph-text-editor';
@@ -28,10 +29,11 @@ import { useStageBridge } from '@/state/stage-bridge';
 const FIT_PADDING = 24;
 const NO_SELECTION = { kind: 'none' } as const;
 
-type Mode = 'draw' | 'text';
+type Mode = 'draw' | 'text' | 'matrix';
 const MODE_OPTIONS = [
   { value: 'draw', label: 'Dibujo' },
   { value: 'text', label: 'Texto' },
+  { value: 'matrix', label: 'Matriz' },
 ] as const satisfies readonly { value: Mode; label: string }[];
 
 export default function ColorScreen() {
@@ -78,8 +80,12 @@ export default function ColorScreen() {
     if (vertexCount > 0) dispatch({ type: 'setPositions', positions: autoLayout(doc.graph, WORLD_BOX) });
   };
   const changeMode = (next: Mode) => {
-    if (next === 'text') results.closeResults();
+    if (next !== 'draw') results.closeResults();
     setMode(next);
+  };
+  const colorGraph = () => {
+    setMode('draw');
+    results.openResults();
   };
   const submitRename = (to: string) => {
     dispatch({ type: 'renameSelected', to });
@@ -99,6 +105,48 @@ export default function ColorScreen() {
       onDismiss={() => dispatch({ type: 'dismissNotice' })}
     />
   );
+
+  const toolbar = (
+    <EditorToolbar
+      canUndo={state.past.length > 0}
+      canRedo={state.future.length > 0}
+      onUndo={() => dispatch({ type: 'undo' })}
+      onRedo={() => dispatch({ type: 'redo' })}
+      onRelayout={mode === 'draw' ? relayout : undefined}
+      onClear={() => dispatch({ type: 'clear' })}
+      primary={{
+        icon: 'palette',
+        label: 'Colorear',
+        accessibilityLabel: 'Colorear el grafo',
+        onPress: colorGraph,
+        disabled: vertexCount === 0,
+      }}
+    />
+  );
+
+  if (mode === 'matrix') {
+    return (
+      <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
+        <View style={styles.header}>
+          <View style={styles.modeSwitch}>
+            <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={changeMode} />
+          </View>
+          <Text style={[styles.counts, { color: theme.textSecondary }]} numberOfLines={2}>
+            {countsLabel(vertexCount, edgeCount)}
+          </Text>
+        </View>
+        <View style={styles.canvasArea}>
+          <AdjacencyMatrixView
+            graph={doc.graph}
+            onToggle={(a, b) => dispatch({ type: 'toggleEdge', a, b })}
+            emptyText="Todavía no hay vértices. Créalos en Dibujo o en Texto."
+          />
+          {snackbar}
+        </View>
+        {toolbar}
+      </SafeAreaView>
+    );
+  }
 
   if (mode === 'text') {
     return (
@@ -168,21 +216,7 @@ export default function ColorScreen() {
           onRename={() => setRenaming(true)}
           onDelete={() => dispatch({ type: 'deleteSelection' })}
         />
-        <EditorToolbar
-          canUndo={state.past.length > 0}
-          canRedo={state.future.length > 0}
-          onUndo={() => dispatch({ type: 'undo' })}
-          onRedo={() => dispatch({ type: 'redo' })}
-          onRelayout={relayout}
-          onClear={() => dispatch({ type: 'clear' })}
-          primary={{
-            icon: 'palette',
-            label: 'Colorear',
-            accessibilityLabel: 'Colorear el grafo',
-            onPress: results.openResults,
-            disabled: vertexCount === 0,
-          }}
-        />
+        {toolbar}
 
         <ResultsSheet visible={results.open} onClose={results.closeResults}>
           <ResultsPanel
@@ -222,7 +256,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
-  modeSwitch: { flexBasis: 220, flexShrink: 1 },
+  modeSwitch: { flexBasis: 270, flexShrink: 1 },
   counts: { flex: 1, fontSize: 13, lineHeight: 18, textAlign: 'right' },
   body: { flex: 1 },
   canvasArea: { flex: 1 },

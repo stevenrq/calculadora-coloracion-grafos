@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AdjacencyMatrixView } from '@/components/adjacency-matrix';
 import { EditorToolbar } from '@/components/editor-toolbar';
 import { GraphCanvas } from '@/components/graph-canvas/graph-canvas';
 import { NoticeSnackbar } from '@/components/notice-snackbar';
@@ -32,10 +33,11 @@ const FIT_PADDING = 24;
 const NO_SELECTION = { kind: 'none' } as const;
 const CODE_TEXTS = { title: 'Cambiar código', inputLabel: 'Nuevo código de la actividad' };
 
-type Mode = 'table' | 'graph';
+type Mode = 'table' | 'graph' | 'matrix';
 const MODE_OPTIONS = [
   { value: 'table', label: 'Tabla' },
   { value: 'graph', label: 'Grafo' },
+  { value: 'matrix', label: 'Matriz' },
 ] as const satisfies readonly { value: Mode; label: string }[];
 
 /** La fila que se está editando: `code` null es una actividad nueva. */
@@ -69,7 +71,7 @@ export default function PrecedenceScreen() {
   const counts = `${plural(activityCount, 'actividad', 'actividades')} · ${plural(doc.graph.edges.length, 'precedencia', 'precedencias')}`;
 
   const changeMode = (next: Mode) => {
-    if (next === 'table') view.closeResults();
+    if (next !== 'graph') view.closeResults();
     setMode(next);
   };
   const analyze = () => {
@@ -158,6 +160,15 @@ export default function PrecedenceScreen() {
             />
             {snackbar}
           </View>
+        ) : mode === 'matrix' ? (
+          <View style={styles.area}>
+            <AdjacencyMatrixView
+              graph={doc.graph}
+              onToggle={(a, b) => dispatch({ type: 'toggleEdge', a, b })}
+              emptyText="Todavía no hay actividades. Agrégalas en la Tabla o en el Grafo."
+            />
+            {snackbar}
+          </View>
         ) : (
           <View style={styles.area}>
             <GraphCanvas
@@ -228,7 +239,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
-  modeSwitch: { flexBasis: 220, flexShrink: 1 },
+  modeSwitch: { flexBasis: 270, flexShrink: 1 },
   counts: { flex: 1, fontSize: 13, lineHeight: 18, textAlign: 'right' },
   body: { flex: 1 },
   area: { flex: 1 },
