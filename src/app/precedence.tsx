@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -61,6 +61,13 @@ export default function PrecedenceScreen() {
   const saved = useSavedGraphs();
   const [editing, setEditing] = useState<Editing>(null);
   const view = usePrecedenceView(doc);
+  // Abrir un ejemplo o un guardado desde otra pestaña vuelve a la Tabla.
+  const { open: openRequest } = useLocalSearchParams<{ open?: string }>();
+  const [seenOpen, setSeenOpen] = useState(openRequest);
+  if (openRequest !== seenOpen) {
+    setSeenOpen(openRequest);
+    setMode('table');
+  }
   const { analysis } = view;
   const unit = doc.unit ?? DEFAULT_UNIT;
 

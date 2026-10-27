@@ -29,7 +29,7 @@ export function PracticeBar({
               onPress={() => onColorChange(i)}
               accessibilityRole="radio"
               accessibilityLabel={`Color ${i + 1}`}
-              accessibilityState={{ selected }}
+              accessibilityState={{ checked: selected }}
               style={[styles.swatchTarget, selected && { borderColor: theme.text }]}>
               <View style={[styles.swatch, { backgroundColor: fill }]}>
                 <Text style={[styles.swatchNumber, { color: contrastText(fill) }]}>{i + 1}</Text>
@@ -41,7 +41,7 @@ export function PracticeBar({
           onPress={() => onColorChange(null)}
           accessibilityRole="radio"
           accessibilityLabel="Goma: quitar el color"
-          accessibilityState={{ selected: color === null }}
+          accessibilityState={{ checked: color === null }}
           style={[styles.swatchTarget, color === null && { borderColor: theme.text }]}>
           <View style={[styles.swatch, styles.eraser, { borderColor: theme.border }]}>
             <MaterialIcons name="auto-fix-normal" size={20} color={theme.text} />

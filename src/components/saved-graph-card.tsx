@@ -48,7 +48,7 @@ export function SavedGraphCard({
           <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
             {item.name}
           </Text>
-          <Text style={[styles.detail, { color: theme.textSecondary }]} numberOfLines={1}>
+          <Text style={[styles.detail, { color: theme.textSecondary }]} numberOfLines={2}>
             {module} · {counts}
           </Text>
           <Text style={[styles.date, { color: theme.textSecondary }]}>{date}</Text>
@@ -87,6 +87,7 @@ export function SavedGraphMenu({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityLabel={label}
       style={({ pressed }) => [styles.option, pressed && { backgroundColor: theme.backgroundSelected }]}>
       <MaterialIcons name={icon} size={24} color={danger ? theme.danger : theme.text} />
       <Text style={[styles.optionLabel, { color: danger ? theme.danger : theme.text }]}>{label}</Text>

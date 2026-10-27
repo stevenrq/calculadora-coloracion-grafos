@@ -70,6 +70,7 @@ function Topic({
       <Pressable
         onPress={onToggle}
         accessibilityRole="button"
+        accessibilityLabel={topic.title}
         accessibilityState={{ expanded }}
         style={({ pressed }) => [styles.topicHeader, pressed && { backgroundColor: theme.backgroundSelected }]}>
         <Text style={[styles.topicTitle, { color: theme.text }]}>{topic.title}</Text>
@@ -97,7 +98,12 @@ function Block({ block }: { block: LearnBlock }) {
       <View style={styles.list}>
         {block.items.map((item) => (
           <View key={item} style={styles.listItem}>
-            <Text style={[styles.paragraph, { color: theme.text }]}>•</Text>
+            <Text
+              style={[styles.paragraph, { color: theme.text }]}
+              accessibilityElementsHidden
+              importantForAccessibility="no">
+              •
+            </Text>
             <Text style={[styles.paragraph, styles.listText, { color: theme.text }]}>{item}</Text>
           </View>
         ))}

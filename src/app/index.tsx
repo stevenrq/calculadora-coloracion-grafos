@@ -1,5 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -67,6 +67,14 @@ export default function ColorScreen() {
   const [brush, setBrush] = useState<number | null>(0);
   const [verdictShown, setVerdictShown] = useState(false);
   const practicing = practice !== null && mode === 'draw';
+  // Abrir un ejemplo o un guardado desde otra pestaña muestra el dibujo, sin el modo práctica.
+  const { open: openRequest } = useLocalSearchParams<{ open?: string }>();
+  const [seenOpen, setSeenOpen] = useState(openRequest);
+  if (openRequest !== seenOpen) {
+    setSeenOpen(openRequest);
+    setMode('draw');
+    setPractice(null);
+  }
   const { analysis: practiceAnalysis } = useColoringAnalysis(doc.graph, practicing);
 
   // Al llegar desde "Ver etapas como coloración" se abren los resultados con la comparación (una vez por puente).
