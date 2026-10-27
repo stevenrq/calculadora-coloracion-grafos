@@ -161,3 +161,45 @@ describe('notify', () => {
     expect(notified.future).toBe(s.future);
   });
 });
+
+describe('created: sube solo cuando el usuario crea un vértice o una arista (vibración)', () => {
+  it('tocar vacío sin selección crea un vértice; con selección solo deselecciona', () => {
+    const s0 = initialEditorState();
+    expect(s0.created).toBe(0);
+    const s1 = run(s0, { type: 'tapEmpty', point: P(0) });
+    expect(s1.created).toBe(1);
+    const s2 = run(s1, { type: 'tapVertex', id: 'A' }, { type: 'tapEmpty', point: P(50) });
+    expect(s2.created).toBe(1);
+  });
+
+  it('unir dos vértices crea la arista; repetida o el mismo vértice no', () => {
+    const s0 = abc();
+    const joined = run(s0, { type: 'tapVertex', id: 'A' }, { type: 'tapVertex', id: 'B' });
+    expect(joined.created).toBe(s0.created + 1);
+    const repeated = run(joined, { type: 'tapVertex', id: 'A' });
+    expect(repeated.created).toBe(joined.created);
+    const same = run(s0, { type: 'tapVertex', id: 'A' }, { type: 'tapVertex', id: 'A' });
+    expect(same.created).toBe(s0.created);
+  });
+
+  it('una celda de la matriz que agrega sube; la que quita no', () => {
+    const s0 = abc();
+    const added = run(s0, { type: 'toggleEdge', a: 'A', b: 'C' });
+    expect(added.created).toBe(s0.created + 1);
+    const removed = run(added, { type: 'toggleEdge', a: 'A', b: 'C' });
+    expect(removed.created).toBe(added.created);
+  });
+
+  it('deshacer, rehacer, reemplazar el documento y mover no cuentan', () => {
+    const s0 = abc();
+    const s = run(
+      s0,
+      { type: 'undo' },
+      { type: 'redo' },
+      { type: 'dragStart' },
+      { type: 'dragMove', id: 'A', point: P(5) },
+      { type: 'replaceDoc', doc: initialEditorState().doc, message: 'Se cargó «C₄».' },
+    );
+    expect(s.created).toBe(s0.created);
+  });
+});

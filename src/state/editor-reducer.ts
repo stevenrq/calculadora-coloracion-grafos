@@ -36,6 +36,8 @@ export interface EditorState {
   notice: Notice | null;
   /** Sube con replaceDoc y setPositions: la pantalla vuelve a encuadrar el lienzo. */
   fitRequest: number;
+  /** Sube cuando el usuario crea un vértice o una arista: el teléfono vibra. */
+  created: number;
 }
 
 export type EditorAction =
@@ -75,7 +77,15 @@ export function emptyDoc(directed = false): EditorDoc {
 }
 
 export function initialEditorState(doc?: EditorDoc | null, directed = false): EditorState {
-  return { doc: doc ?? emptyDoc(directed), past: [], future: [], selection: NO_SELECTION, notice: null, fitRequest: 0 };
+  return {
+    doc: doc ?? emptyDoc(directed),
+    past: [],
+    future: [],
+    selection: NO_SELECTION,
+    notice: null,
+    fitRequest: 0,
+    created: 0,
+  };
 }
 
 const pushPast = (state: EditorState) => [...state.past, state.doc].slice(-HISTORY_LIMIT);
@@ -107,7 +117,11 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const label = nextLabel(doc.graph.vertices);
       const r = addVertex(doc.graph, label);
       if (!r.ok) return { ...state, notice: errorNotice(r.error) };
-      return commit(state, { ...doc, graph: r.graph, positions: { ...doc.positions, [label]: action.point } });
+      return commit(
+        state,
+        { ...doc, graph: r.graph, positions: { ...doc.positions, [label]: action.point } },
+        { created: state.created + 1 },
+      );
     }
 
     case 'tapVertex': {
@@ -118,7 +132,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       // Encadenar: la selección pasa al vértice tocado para seguir dibujando.
       const next: Selection = { kind: 'vertex', id: action.id };
       if (r.graph === doc.graph) return { ...state, selection: next };
-      return commit(state, { ...doc, graph: r.graph }, { selection: next });
+      return commit(state, { ...doc, graph: r.graph }, { selection: next, created: state.created + 1 });
     }
 
     case 'tapEdge':
@@ -141,7 +155,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       }
       const r = addEdge(doc.graph, a, b);
       if (!r.ok) return { ...state, notice: errorNotice(r.error) };
-      return commit(state, { ...doc, graph: r.graph }, { selection: NO_SELECTION });
+      return commit(state, { ...doc, graph: r.graph }, { selection: NO_SELECTION, created: state.created + 1 });
     }
 
     case 'dragStart':

@@ -1,6 +1,7 @@
 import { createContext, type Dispatch, type ReactNode, use, useEffect, useReducer, useState } from 'react';
 import { AppState } from 'react-native';
 
+import { useCreationHaptics } from '@/hooks/use-creation-haptics';
 import { DEFAULT_UNIT } from '@/lib/precedence/types';
 import { createAutosaver } from './autosaver';
 import { type EditorAction, type EditorDoc, editorReducer, type EditorState, initialEditorState } from './editor-reducer';
@@ -55,6 +56,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [precedence, dispatchPrecedence] = useReducer(precedenceReducer, undefined, initialPrecedence);
   useAutosave('coloring', coloring);
   useAutosave('precedence', precedence);
+  useCreationHaptics(coloring.created);
+  useCreationHaptics(precedence.created);
 
   return (
     <ColoringEditorContext value={{ state: coloring, dispatch: dispatchColoring }}>
