@@ -8,6 +8,7 @@ import { NoticeSnackbar } from '@/components/notice-snackbar';
 import { SavedGraphCard, SavedGraphMenu } from '@/components/saved-graph-card';
 import { Spacing } from '@/constants/theme';
 import { useModuleLoader } from '@/hooks/use-module-loader';
+import { useNow } from '@/hooks/use-now';
 import { SettingsButton } from '@/components/settings-button';
 import { useTheme } from '@/hooks/use-theme';
 import { COLORING_EXAMPLES, type ColoringExample } from '@/lib/examples/coloring-examples';
@@ -53,7 +54,7 @@ export default function GraphsScreen() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const cards = buildCards();
   const precedenceCards = buildPrecedenceCards();
-  const now = new Date();
+  const now = useNow();
 
   const duplicate = (item: SavedGraph) => {
     setMenuFor(null);
