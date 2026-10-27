@@ -1,56 +1,58 @@
-# Welcome to your Expo app 👋
+# ColorGrafos
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación móvil para Android del curso de **Teoría de Grafos**: calcula y explica la **coloración de grafos**
+y el **número cromático χ(G)**. Funciona **sin internet**: todos los cálculos se hacen en el celular.
 
-## Get started
+## Qué hace
 
-1. Install dependencies
+- **Dibujo con gestos:** toca el lienzo para crear un vértice, toca dos vértices para unirlos, arrastra para
+  mover, pellizca para hacer zoom. Deshacer/rehacer, renombrar, borrar y reorganizar.
+- **Vista Texto:** escribe el grafo como lista de aristas (`A-B, B-C`) o lista de adyacencia (`A: B, C`), con
+  errores y avisos en vivo.
+- **Colorear:** DSATUR, Welsh-Powell, Greedy y búsqueda exacta por backtracking. χ(G) se calcula siempre con
+  búsqueda exacta en segundo plano y se marca **Exacto** solo cuando está demostrado (si no, **Cota superior**).
+- **Explicaciones:** cotas (clique, Δ+1, Brooks), bipartición con el ciclo impar resaltado, componentes, grados,
+  clases de color y un **reproductor paso a paso** con la tabla de saturación de DSATUR.
+- **Mis grafos:** ejemplos listos (C₅, K₃,₃, Petersen, ruedas, cubo Q₃, exámenes…).
+- **Autoguardado:** el grafo se conserva al cerrar la app.
 
-   ```bash
-   npm install
-   ```
+## Requisitos
 
-2. Start the app
+- Node.js 20 o superior.
+- Para probar en el celular durante el desarrollo: la app **Expo Go** (Play Store).
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Correr en modo desarrollo
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Escanea el código QR con Expo Go (el celular y el computador deben estar en la misma red).
 
-### Other setup steps
+## Pruebas y revisión
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+npx jest          # pruebas unitarias (algoritmos, análisis, editor, texto)
+npx tsc --noEmit  # tipos
+npx expo lint     # estilo
+```
 
-## Learn more
+## Generar el APK instalable
 
-To learn more about developing your project with Expo, look at the following resources:
+El APK se compila en la nube con EAS (no hace falta Android Studio):
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. Crea una cuenta gratuita en <https://expo.dev/signup>.
+2. Inicia sesión: `npx eas-cli@latest login`.
+3. Compila: `npx eas-cli@latest build -p android --profile preview`
+   (acepta vincular el proyecto y generar el keystore la primera vez).
+4. Al terminar, EAS muestra un enlace y un QR para descargar el `.apk`. Instálalo en el celular permitiendo
+   "instalar apps de fuentes desconocidas".
 
-## Join the community
+## Estructura
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `src/app/` — pantallas (Expo Router): `index.tsx` (Colorear) y `graphs.tsx` (Mis grafos).
+- `src/components/` — lienzo, barras, editor de texto y la hoja de resultados (`results/`).
+- `src/lib/` — lógica pura y probada: modelo de grafo, texto, layouts, análisis y algoritmos de coloración.
+- `src/state/` — reducer del editor (con deshacer/rehacer) y autoguardado.
+- `docs/superpowers/` — diseño y planes de implementación.
