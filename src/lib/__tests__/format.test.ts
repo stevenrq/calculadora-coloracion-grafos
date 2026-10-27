@@ -1,4 +1,4 @@
-import { countsLabel, joinSpanish, plural, sentences } from '@/lib/format';
+import { countsLabel, formatSavedDate, joinSpanish, plural, sentences } from '@/lib/format';
 
 describe('plural', () => {
   it('usa el singular solo para 1', () => {
@@ -36,5 +36,24 @@ describe('joinSpanish', () => {
     expect(joinSpanish(['C', 'D', 'E'])).toBe('C, D y E');
     expect(joinSpanish(['E', 'F', 'I'])).toBe('E, F e I');
     expect(joinSpanish(['Pan', 'hielo'])).toBe('Pan y hielo');
+  });
+});
+
+describe('formatSavedDate', () => {
+  const now = new Date(2026, 9, 27, 18, 0);
+
+  it('el mismo día dice "Hoy" con la hora', () => {
+    expect(formatSavedDate(new Date(2026, 9, 27, 14, 5).toISOString(), now)).toBe('Hoy, 14:05');
+  });
+
+  it('el día anterior dice "Ayer"', () => {
+    expect(formatSavedDate(new Date(2026, 9, 26, 9, 30).toISOString(), now)).toBe('Ayer, 09:30');
+    // Primero de mes: el día anterior es del mes pasado.
+    expect(formatSavedDate(new Date(2026, 9, 31, 23, 59).toISOString(), new Date(2026, 10, 1, 8, 0))).toBe('Ayer, 23:59');
+  });
+
+  it('otro día muestra la fecha con el mes abreviado', () => {
+    expect(formatSavedDate(new Date(2026, 9, 25, 8, 0).toISOString(), now)).toBe('25 oct 2026');
+    expect(formatSavedDate(new Date(2025, 8, 3, 8, 0).toISOString(), now)).toBe('3 sept 2025');
   });
 });
