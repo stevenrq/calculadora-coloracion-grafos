@@ -52,3 +52,8 @@ export function contrastText(hex: string): '#000000' | '#FFFFFF' {
 export function coloringColors(coloring: Readonly<Record<string, number>>): Record<string, string> {
   return Object.fromEntries(Object.entries(coloring).map(([v, c]) => [v, graphColor(c)]));
 }
+
+/** Número de color que se muestra en cada vértice (desde 1, como "Color 1" en la hoja de resultados). */
+export function coloringNumbers(coloring: Readonly<Record<string, number>>): Record<string, number> {
+  return Object.fromEntries(Object.entries(coloring).map(([v, c]) => [v, c + 1]));
+}

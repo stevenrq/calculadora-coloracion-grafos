@@ -44,6 +44,8 @@ export interface GraphCanvasProps {
   onViewportChange: (vp: Viewport) => void;
   onLayout?: (size: { width: number; height: number }) => void;
   vertexColors?: Readonly<Record<VertexId, string>>;
+  /** Número de color de cada vértice, en una insignia (opción de Ajustes para distinguir colores parecidos). */
+  vertexNumbers?: Readonly<Record<VertexId, number>>;
   highlight?: CanvasHighlight;
   /** Modo "Colorea tú": tocar un vértice lo pinta y nada más (no crea, no selecciona, no arrastra). */
   onPaintVertex?: (id: VertexId) => void;
@@ -53,6 +55,10 @@ export interface GraphCanvasProps {
 const MIN_TOUCH_RADIUS = 24;
 const MIN_EDGE_TOUCH = 12;
 const RING_GAP = 5;
+// Insignia del número de color: sobre el borde del vértice, a 45° arriba a la derecha.
+const BADGE_RADIUS = VERTEX_RADIUS * 0.45;
+const BADGE_OFFSET = VERTEX_RADIUS * 0.72;
+const BADGE_FONT = VERTEX_RADIUS * 0.52;
 
 type Drag = { kind: 'vertex'; id: VertexId; offset: Point } | { kind: 'pan' };
 
@@ -73,6 +79,7 @@ export function GraphCanvas({
   onViewportChange,
   onLayout,
   vertexColors,
+  vertexNumbers,
   highlight,
   onPaintVertex,
 }: GraphCanvasProps) {
@@ -229,6 +236,7 @@ export function GraphCanvas({
               if (!p) return null;
               const fill = vertexColors?.[v] ?? theme.vertex;
               const label = fitLabel(v);
+              const number = vertexNumbers?.[v];
               return (
                 <G key={v}>
                   {highlightVertices.has(v) && (
@@ -255,6 +263,27 @@ export function GraphCanvas({
                     textAnchor="middle">
                     {label.text}
                   </SvgText>
+                  {number !== undefined && (
+                    <>
+                      <Circle
+                        cx={p.x + BADGE_OFFSET}
+                        cy={p.y - BADGE_OFFSET}
+                        r={BADGE_RADIUS}
+                        fill={theme.background}
+                        stroke={theme.edge}
+                        strokeWidth={1.5}
+                      />
+                      <SvgText
+                        x={p.x + BADGE_OFFSET}
+                        y={p.y - BADGE_OFFSET + BADGE_FONT * 0.35}
+                        fill={theme.text}
+                        fontSize={BADGE_FONT}
+                        fontWeight="700"
+                        textAnchor="middle">
+                        {number}
+                      </SvgText>
+                    </>
+                  )}
                 </G>
               );
             })}

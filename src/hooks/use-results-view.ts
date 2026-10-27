@@ -1,6 +1,5 @@
 import { useState } from 'react';
 
-import { coloringColors } from '@/constants/palette';
 import { useColoringAnalysis } from '@/hooks/use-coloring-analysis';
 import {
   afterHighlightToggle,
@@ -13,7 +12,7 @@ import {
 } from '@/lib/analysis/highlights';
 import { selectDisplayedResult } from '@/lib/coloring/present';
 import { coloringAtStep } from '@/lib/coloring/replay';
-import type { AlgorithmId } from '@/lib/coloring/types';
+import type { AlgorithmId, Coloring } from '@/lib/coloring/types';
 import type { Graph } from '@/lib/graph/types';
 
 /**
@@ -35,10 +34,10 @@ export function useResultsView(graph: Graph, active: boolean) {
   const stepIndex = selection.step?.key === resultKey ? selection.step.index : lastStep;
   const replaying = displayed !== null && stepIndex < lastStep;
 
-  let vertexColors: Record<string, string> | undefined;
+  let vertexColoring: Coloring | undefined;
   let highlight: ReturnType<typeof highlightFor>;
   if (analysis && displayed) {
-    vertexColors = coloringColors(replaying ? coloringAtStep(displayed.steps, stepIndex) : displayed.coloring);
+    vertexColoring = replaying ? coloringAtStep(displayed.steps, stepIndex) : displayed.coloring;
     highlight = replaying
       ? stepHighlight(displayed.steps, stepIndex)
       : highlightFor(highlightTarget, graph, displayed.coloring, analysis);
@@ -54,7 +53,8 @@ export function useResultsView(graph: Graph, active: boolean) {
     resultKey,
     stepIndex,
     replaying,
-    vertexColors,
+    /** Coloración que se pinta en el lienzo (la del paso actual mientras se reproduce). */
+    vertexColoring,
     highlight,
     openResults() {
       setOpen(true);

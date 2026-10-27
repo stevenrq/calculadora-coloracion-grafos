@@ -18,7 +18,7 @@ import { type BridgePaint, StageBridgeCard } from '@/components/results/stage-br
 import { SegmentedControl } from '@/components/segmented-control';
 import { SettingsButton } from '@/components/settings-button';
 import { SelectionBar } from '@/components/selection-bar';
-import { coloringColors } from '@/constants/palette';
+import { coloringColors, coloringNumbers } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
 import { useColoringAnalysis } from '@/hooks/use-coloring-analysis';
 import { useResultsView } from '@/hooks/use-results-view';
@@ -35,6 +35,7 @@ import { useColoringEditor } from '@/state/editor-context';
 import type { Notice } from '@/state/editor-reducer';
 import { newSavedId, uniqueName } from '@/state/saved-graphs';
 import { useSavedGraphs } from '@/state/saved-graphs-context';
+import { useSettings } from '@/state/settings-context';
 import { useStageBridge } from '@/state/stage-bridge';
 
 const FIT_PADDING = 24;
@@ -49,6 +50,7 @@ const MODE_OPTIONS = [
 
 export default function ColorScreen() {
   const theme = useTheme();
+  const { settings } = useSettings();
   const { state, dispatch } = useColoringEditor();
   const { doc, selection, notice, fitRequest } = state;
   const [viewport, setViewport] = useState<Viewport>(IDENTITY_VIEWPORT);
@@ -88,12 +90,14 @@ export default function ColorScreen() {
   }
   // Pintar por etapas, salvo mientras el reproductor recorre los pasos de otro algoritmo.
   const stagePaint = stageBridge !== null && paint === 'stages' && !results.replaying;
-  const vertexColors = stagePaint ? coloringColors(stageBridge.coloring) : results.vertexColors;
+  const vertexColoring = stagePaint ? stageBridge.coloring : results.vertexColoring;
   // Una clase de color de la coloración mostrada no corresponde a la pintura por etapas.
   const resultsHighlight = stagePaint && results.highlightTarget?.kind === 'class' ? undefined : results.highlight;
   // Se poda en cada render: un vértice que ya no existe no debe contar como coloreado.
   const practiceColoring = practicing ? prunePractice(practice, doc.graph) : null;
   const conflicts = practiceColoring ? conflictingEdges(doc.graph, practiceColoring) : [];
+  // Lo que pinta el lienzo: la práctica manda sobre el resultado y las etapas.
+  const canvasColoring = practiceColoring ?? vertexColoring;
   const highlight = practiceColoring
     ? conflicts.length > 0
       ? { edges: conflicts, tone: 'warning' as const }
@@ -273,7 +277,8 @@ export default function ColorScreen() {
             viewport={viewport}
             onViewportChange={setViewport}
             onLayout={setSize}
-            vertexColors={practiceColoring ? coloringColors(practiceColoring) : vertexColors}
+            vertexColors={canvasColoring && coloringColors(canvasColoring)}
+            vertexNumbers={settings.showColorNumbers && canvasColoring ? coloringNumbers(canvasColoring) : undefined}
             highlight={highlight}
             onPaintVertex={practicing ? paintPractice : undefined}
           />
